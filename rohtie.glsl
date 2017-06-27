@@ -176,6 +176,9 @@ float rohtie(vec2 p) {
 
 void mainImage( out vec4 o, in vec2 p ) {
     p /= iResolution.xy;
+
+    vec2 r = p;
+
     p -= .5;
     p.x *= iResolution.x / iResolution.y;
 
@@ -187,9 +190,10 @@ void mainImage( out vec4 o, in vec2 p ) {
     float result = rohtie(p - vec2(-.75 + .125, .0));
 
     if (iGlobalTime < 12.25) {
-        result = min(result, abs(p.y));
-        // result = min(result, abs(p.y + 0.35) - 0.075);
 
+
+        p.y += texture(iChannel0, vec2(mod(abs(r.x)  - 0.05, 0.1), 0.)).r * 0.05;
+        result = min(result, abs(p.y));
         result = min(result, (1. - abs(q.y)) - sin(PI * 2.25 + iGlobalTime));
 
         result = smoothstep(
@@ -222,12 +226,11 @@ void mainImage( out vec4 o, in vec2 p ) {
             vec4(0.) + result / hash(p.x / p.y) * 0.75
             // - vec4(25.) * (1.0 - clamp(iGlobalTime * .75, 0., 1.))
         );
-
-        o *= 3.25;
     }
     else if (iGlobalTime < 13.) {
+        // Outlined text
         // result = max(-result, result - .005);
-        // result = smoothstep(.0, .01, result);
+
         result = smoothstep(.0 - sin(iGlobalTime * 50.) * .01, .0, result);
 
         o = (
