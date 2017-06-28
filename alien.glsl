@@ -154,7 +154,7 @@ void mainImage (out vec4 o, in vec2 p) {
 
     float distance = intersect(cameraPosition, rayDirection);
 
-    vec3 col = vec3(0.05, 0.05, 0.15);
+    vec3 col = vec3(0.);
 
     if (distance > 0.0) {
         col = vec3(0.0);
