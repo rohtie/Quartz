@@ -51,6 +51,16 @@ float r(vec2 p) {
     return result;
 }
 
+float r2(vec2 p) {
+    float result = 1.;
+
+    result = min(result, rect(p - vec2(.0, .03), vec2(0.125, .525)));
+    result = min(result, circle(p - vec2(0.175, .15), .075));
+
+
+    return result;
+}
+
 float o(vec2 p) {
     float result = 1.;
 
@@ -83,6 +93,16 @@ float t(vec2 p) {
 
     result = min(result, rect(p - vec2(0.27, .0), vec2(.25, .75)));
     result = min(result, upHalfCircle(p - vec2(0., .15), .124));
+
+    return result;
+}
+
+float t2(vec2 p) {
+    float result = 1.;
+
+    result = min(result, rect(p - vec2(.0, .0), vec2(0.125, .75)));
+    result = min(result, downHalfCircle(p - vec2(0.2, .375), .124));
+    result = min(result, downHalfCircle(p - vec2(-0.2, .375), .124));
 
     return result;
 }
@@ -148,12 +168,10 @@ float y(vec2 p) {
 float z(vec2 p) {
     float result = 1.;
 
-    result = min(result, leftHalfCircle(p - vec2(.115, .025), .25));
-    result = min(result, rect(p - vec2(-.006, .15), vec2(.246, .25)));
-
-    result = min(result, leftHalfCircle(p - vec2(.395, -.01), .25));
-    result = min(result, rightHalfCircle(p - vec2(.145, -.242), .25));
-    result = min(result, rect(p - vec2(.03, -.368), vec2(.246, .25)));
+    result = min(result, max(-p.x, downHalfCircle(p - vec2(.0, .25), .25)));
+    result = min(result, max(p.x, upHalfCircle(p - vec2(.0, -.25), .25)));
+    result = min(result, rect(p - vec2(-0.125, 0.185), vec2(0.25, 0.125)));
+    result = min(result, rect(p - vec2(0.125, -0.185), vec2(0.25, 0.125)));
 
     return result;
 }
@@ -186,6 +204,21 @@ float u(vec2 p) {
     return result;
 }
 
+
+float u2(vec2 p) {
+    float result = 1.;
+
+    // p /= 0.85;
+
+    result = min(result, leftHalfCircle(p - vec2(-.0125, .0), .125));
+    result = min(result, rightHalfCircle(p - vec2(.0125, .0), .125));
+
+    result = min(result, rect(p - vec2(-.075, .125), vec2(.125, .25)));
+    result = min(result, rect(p - vec2(.075, .125), vec2(.125, .25)));
+
+    return result;
+}
+
 float b(vec2 p) {
     float result = 1.;
 
@@ -211,18 +244,19 @@ float rohtie(vec2 p) {
 }
 
 float quartz(vec2 p) {
-    p /= .415;
+    p /= .475;
 
     float result = 1.;
 
-    p.x += 1.25;
+    p.y += 0.125;
+    p.x += 2.425;
 
-    result = min(result, q(p - vec2(.7, .0)));
-    result = min(result, u(p - vec2(1.4, .0)));
-    result = min(result, a(p - vec2(2.1, .0)));
-    result = min(result, r(p - vec2(2.8, .0)));
-    result = min(result, t(p - vec2(3.5, .0)));
-    result = min(result, z(p - vec2(4.2, .0)));
+    result = min(result, q(p - vec2(2.45, .0)));
+    result = min(result, u2(p - vec2(2.75, .3)));
+    result = min(result, a(p - vec2(3.025, .025)));
+    result = min(result, r2(p - vec2(3.5, .0)));
+    result = min(result, t2(p - vec2(3.9, .1)));
+    result = min(result, z(p - vec2(4.325, .035)));
 
     return result;
 }
@@ -244,7 +278,15 @@ void mainImage( out vec4 o, in vec2 p ) {
     p.x += sin(cos(p.y * 4.) * 5. + iGlobalTime) * .005;
     p.y += cos(sin(p.x * 4.) * 5. + iGlobalTime) * .0025;
 
-    float result = rohtie(p - vec2(-.75 + .125, .0));
+    float result = 1.;
+
+    if (iGlobalTime <= 7.) {
+        // result = rohtie(p - vec2(-.75 + .125, .0));
+        result = rohtie(p - vec2(-.75 + .125, .0));
+    }
+    else {
+        result = quartz(p - vec2(-.6 + .125, .0));
+    }
 
     if (iGlobalTime < 12.25) {
         p.y += texture(iChannel0, vec2(mod(abs(r.x)  - 0.05, 0.1), 0.)).r * 0.05;
