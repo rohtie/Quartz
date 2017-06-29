@@ -54,8 +54,9 @@ float r(vec2 p) {
 float r2(vec2 p) {
     float result = 1.;
 
+    // result = min(result, p.y - 0.115);
     result = min(result, rect(p - vec2(.0, .03), vec2(0.125, .525)));
-    result = min(result, circle(p - vec2(0.175, .15), .075));
+    result = min(result, circle(p - vec2(0.175, .2), .075));
 
 
     return result;
@@ -132,7 +133,7 @@ float a(vec2 p) {
     result = min(result, rightHalfCircle(p - vec2(.05, -.015), .25));
     result = min(result, leftHalfCircle(p - vec2(.0225, - .1385), .125));
     result = min(result, max(-p.y + .1, leftHalfCircle(p - vec2(.05, -.015), .25)));
-    result = min(result, rect(p - vec2(0.2375, -0.13), vec2(0.125, 0.25)));
+    result = min(result, rect(p - vec2(0.2375, -0.135), vec2(0.125, 0.25)));
     // result = min(result, leftHalfCircle(p - vec2(.0225, - .1385), .125));
     // result = min(result, leftHalfCircle(p - vec2(.275, -.3), .124));
 
@@ -168,10 +169,10 @@ float y(vec2 p) {
 float z(vec2 p) {
     float result = 1.;
 
-    result = min(result, max(-p.x, downHalfCircle(p - vec2(.0, .25), .25)));
-    result = min(result, max(p.x, upHalfCircle(p - vec2(.0, -.25), .25)));
-    result = min(result, rect(p - vec2(-0.125, 0.185), vec2(0.25, 0.125)));
-    result = min(result, rect(p - vec2(0.125, -0.185), vec2(0.25, 0.125)));
+    result = min(result, max(-p.x, downHalfCircle(p - vec2(.0, .18), .25)));
+    result = min(result, max(p.x, upHalfCircle(p - vec2(.0, -.18), .25)));
+    result = min(result, rect(p - vec2(-0., 0.19), vec2(0.5, 0.01)));
+    result = min(result, rect(p - vec2(0., -0.19), vec2(0.5, 0.01)));
 
     return result;
 }
@@ -213,8 +214,8 @@ float u2(vec2 p) {
     result = min(result, leftHalfCircle(p - vec2(-.0125, .0), .125));
     result = min(result, rightHalfCircle(p - vec2(.0125, .0), .125));
 
-    result = min(result, rect(p - vec2(-.075, .125), vec2(.125, .25)));
-    result = min(result, rect(p - vec2(.075, .125), vec2(.125, .25)));
+    result = min(result, rect(p - vec2(-.075, .125), vec2(.125, .2)));
+    result = min(result, rect(p - vec2(.075, .125), vec2(.125, .2)));
 
     return result;
 }
@@ -248,15 +249,21 @@ float quartz(vec2 p) {
 
     float result = 1.;
 
-    p.y += 0.125;
-    p.x += 2.425;
+    // p.x *= -1.;
+    // p.x += 1.65;
 
-    result = min(result, q(p - vec2(2.45, .0)));
-    result = min(result, u2(p - vec2(2.75, .3)));
-    result = min(result, a(p - vec2(3.025, .025)));
-    result = min(result, r2(p - vec2(3.5, .0)));
-    result = min(result, t2(p - vec2(3.9, .1)));
-    result = min(result, z(p - vec2(4.325, .035)));
+    p.y -= 0.05;
+    p.x += 3.3;
+
+    // result = min(result, p.y + 0.23);
+    // result = min(result, -p.y + 0.04);
+    // result = min(result, q(p - vec2(2.28, .0325)));
+    result = min(result, q(p - vec2(2.29, .31)));
+    result = min(result, u2(p - vec2(2.7, -.0925)));
+    result = min(result, a(p - vec2(3.025, .045)));
+    result = min(result, r2(p - vec2(3.415, .0175)));
+    result = min(result, t2(p - vec2(3.815, -.345)));
+    result = min(result, z(p - vec2(4.14125, -.4)));
 
     return result;
 }
@@ -271,31 +278,33 @@ void mainImage( out vec4 o, in vec2 p ) {
 
     vec2 q = p;
 
-
-    // o = vec4(smoothstep(0., 0.01, quartz(p - vec2(-0.5, 0.))));
+    // o = vec4(smoothstep(0., 0.01, quartz(p - vec2(0., 0.))));
     // return;
-
-    p.x += sin(cos(p.y * 4.) * 5. + iGlobalTime) * .005;
-    p.y += cos(sin(p.x * 4.) * 5. + iGlobalTime) * .0025;
 
     float result = 1.;
 
-    if (iGlobalTime <= 7.) {
-        // result = rohtie(p - vec2(-.75 + .125, .0));
-        result = rohtie(p - vec2(-.75 + .125, .0));
-    }
-    else {
-        result = quartz(p - vec2(-.6 + .125, .0));
-    }
-
     if (iGlobalTime < 12.25) {
+        p.x += sin(cos(p.y * 4.) * 5. + iGlobalTime) * .005;
+        p.y += cos(sin(p.x * 4.) * 5. + iGlobalTime) * .0025;
+
+        float focus = 0.;
+
+        if (iGlobalTime <= 7.) {
+            // result = rohtie(p - vec2(-.75 + .125, .0));
+            result = rohtie(p - vec2(-.75 + .125, .0));
+        }
+        else {
+            result = quartz(p);
+            focus = 21.;
+        }
+
         p.y += texture(iChannel0, vec2(mod(abs(r.x)  - 0.05, 0.1), 0.)).r * 0.05;
         result = min(result, abs(p.y));
         result = min(result, (1. - abs(q.y)) - sin(PI * 2.25 + iGlobalTime));
 
         result = smoothstep(
             0.,
-            .01 + length(p - vec2(sin(PI * 1.75 + iGlobalTime * .15), 0.)) * .5,
+            .01 + length(p - vec2(sin(PI * 1.75 + focus + iGlobalTime * .15), 0.)) * .5,
             result);
 
         o = (
@@ -327,8 +336,20 @@ void mainImage( out vec4 o, in vec2 p ) {
     else if (iGlobalTime < 13.) {
         // Outlined text
         // result = max(-result, result - .005);
+        result = quartz(p);
 
-        result = smoothstep(.0 - sin(iGlobalTime * 50.) * .01, .0, result);
+        // flipflop = smoothstep(0.3, 0.75, flipflop);
+
+
+        float flipflop = mod(iGlobalTime * 50., 2.);
+        result = smoothstep(.0, .01, result);
+
+        if (flipflop <= 1.0) {
+            result = 1.0 - result;
+        }
+
+        // float flipflop = sin(iGlobalTime * 50.);
+        // result = smoothstep(.0 - flipflop * .01, .0, result);
 
         o = (
             result * vec4(1.)
