@@ -49,16 +49,33 @@ float zen(vec2 p) {
     r = smin(r, capusle(p, vec2(-0.17, 0.26), vec2(0.15, 0.285), 0.01, 0.05), 0.05);
     r = smin(r, capusle(p, vec2(-0.18, 0.14), vec2(0.125, 0.17), 0.01, 0.05), 0.05);
     r = smin(r, capusle(p, vec2(-0.24, 0.015), vec2(0.2, 0.05), 0.01, 0.05), 0.05);
-    r = smin(r, capusle(p, vec2(-0.02, 0.26), vec2(-0.02, 0.05), 0.02, 0.05), 0.05);
     r = smin(r, capusle(p, vec2(-0.35, -0.15), vec2(0.35, -0.11), 0.01, 0.05), 0.05);
     r = smin(r, capusle(p, vec2(-0.15, -0.01), vec2(-0.1, -0.115), 0.02, 0.05), 0.05);
     r = smin(r, capusle(p, vec2(0.105, -0.01), vec2(0.1, -0.115), 0.02, 0.05), 0.05);
+    r = smin(r, capusle(p, vec2(-0.02, 0.26), vec2(-0.02, -0.115), 0.02, 0.05), 0.05);
 
     r = smin(r, capusle(p, vec2(-0.175, -0.225), vec2(0.15, -0.23), 0.01, 0.05), 0.05);    
     r = smin(r, capusle(p, vec2(-0.14, -0.4), vec2(0.15, -0.38), 0.01, 0.05), 0.05);
     
     r = smin(r, capusle(p, vec2(-0.175, -0.225), vec2(-0.14, -0.4), 0.02, 0.05), 0.05);
     r = smin(r, capusle(p, vec2(0.15, -0.23), vec2(0.1, -0.38), 0.02, 0.05), 0.05);
+
+    return r;
+}
+
+float kaizen(vec2 p) {
+    float r = 1.;
+
+    p /= 0.075;
+
+    // IDEA: Different symbol for each scene
+    // r = min(r, kai(p - vec2(-0.25, 0.035)));
+
+    // Zen looks best though...
+    r = min(r, zen(p - vec2(0.0, 0.0)));
+    
+    float ring = capusle(p, vec2(0.0, -0.1), vec2(0.0, 0.1), 0.34); 
+    r = min(r, max(-ring, ring - 0.045));
 
     return r;
 }
@@ -70,11 +87,15 @@ void mainImage(out vec4 o, in vec2 p) {
     p -= 0.5;
     p.x *= iResolution.x / iResolution.y; 
 
-    float r = 1.;
+    float r = kaizen(p - vec2(0.75, -0.375));
+    r = smoothstep(0.0, 0.0125, r);
+
+    // Very slight abberation with yellow/blue instead of normal red/blue
+    // that everyone overuses
+    vec2 rb = texture(iChannel0, q).rb;
+    float g = texture(iChannel0, q + dot(p.x, p.y) * 0.005).g;    
+    o.rgb = vec3(rb, g);
     
-    r = kai(p - vec2(-0.775, 0.));
-    r = min(r, zen(p - vec2(0.4, 0.)));
-    
-    o = vec4(0.0);
-    o += smoothstep(0.0, 0.0075, r);
+    // Quality seal
+    o.rgb = o.rgb*r + (1. - r) * vec3(.85, 0.15, 0.);
 }

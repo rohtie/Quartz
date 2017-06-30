@@ -12,7 +12,7 @@
 	<iChannel src="" filter="" />
 </clip>
 <clip src="quality" start="2493" length="503" time="0">
-	<iChannel src="kaizen.png" filter="" />
+	<iChannel src="sound" filter="" />
 	<iChannel src="" filter="" />
 	<iChannel src="" filter="" />
 	<iChannel src="" filter="" />
