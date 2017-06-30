@@ -2,24 +2,28 @@ struct Material {
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
+    float hardness;
 };
 
 Material defaultMaterial = Material(
     vec3(0.2, 0.2, 0.1),
     vec3(0.25, 0.5, 2.1),
-    vec3(0.5, 0.25, 2.)
+    vec3(0.5, 0.25, 2.),
+    1024.
 );
 
 Material whiteMaterial = Material(
     vec3(1.0),
     vec3(1.0),
-    vec3(1.0)
+    vec3(0.3),
+    20.
 );
 
 Material blackMaterial = Material(
     vec3(0.0),
     vec3(0.0),
-    vec3(0.0)
+    vec3(0.3),
+    20.
 );
 
 float smin(float a, float b, float k) {
@@ -49,9 +53,11 @@ vec3 repeat(vec3 p, vec3 c) {
 }
 
 float ground(vec3 p) {
-    // p.y += sin(p.x + iGlobalTime) * 0.25;
-    // p.y += cos(p.z + iGlobalTime * 3.) * 0.15;
-    // p.y += mod(p.x * 25., 1.) * 0.1;
+    p.y += sin(p.x + iGlobalTime) * 0.25;
+    p.y += cos(p.z + iGlobalTime * 3.) * 0.15;
+    
+    // Cool spikey thingies
+    // p.y += mod(p.x * p.z, 1.) * 3.;
 
     float result = p.y;
 
@@ -67,7 +73,7 @@ float alien(vec3 p) {
 float map(vec3 p) {
     float result = 1.;
     result = min(result, ground(p));
-    result = smin(result, alien(p), 0.5);
+    result = smin(result, alien(p), 1.);
 
     return result;
 }
@@ -137,7 +143,7 @@ mat2 rotate(float a) {
 vec3 light = normalize(vec3(10.0, 20.0, 2.0));
 
 vec3 stripeTextureRaw(vec3 p){
-    if (mod(p.x * 35., 1.) > 0.5) {
+    if (mod(p.x * 5., 1.) > 0.5) {
         return vec3(0.);
     }
     
@@ -202,7 +208,7 @@ void mainImage (out vec4 o, in vec2 p) {
         col += material.diffuse * stripe * max(dot(normal, light), 0.0);
 
         vec3 halfVector = normalize(light + normal);
-        col += material.specular * pow(max(dot(normal, halfVector), 0.0), 1024.0);
+        col += material.specular * pow(max(dot(normal, halfVector), 0.0), material.hardness);
 
         float att = clamp(1.0 - length(light - p) / 5.0, 0.0, 1.0); att *= att;
         col *= att;
