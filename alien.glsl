@@ -101,7 +101,7 @@ vec3 getNormal(vec3 p) {
     ) - map(p));
 }
 
-float intersect (vec3 rayOrigin, vec3 rayDirection) {
+float intersect (vec3 camera, vec3 ray) {
     const float maxDistance = 10.0;
     const float distanceTreshold = 0.001;
     const int maxIterations = 50;
@@ -115,7 +115,7 @@ float intersect (vec3 rayOrigin, vec3 rayDirection) {
             break;
         }
 
-        vec3 p = rayOrigin + rayDirection * distance;
+        vec3 p = camera + ray * distance;
 
         currentDistance = map(p);
 
@@ -136,43 +136,70 @@ mat2 rotate(float a) {
 
 vec3 light = normalize(vec3(10.0, 20.0, 2.0));
 
+vec3 stripeTextureRaw(vec3 p){
+    if (mod(p.x * 35., 1.) > 0.5) {
+        return vec3(0.);
+    }
+    
+    return vec3(1.);
+}
+
+const int textureSamples = 10;
+vec3 stripeTexture(in vec3 p) {
+    vec3 ddx_p = p + dFdx(p);
+    vec3 ddy_p = p + dFdy(p); 
+
+    int sx = 1 + int( clamp( 4.0*length(p), 0.0, float(textureSamples-1) ) );
+    int sy = 1 + int( clamp( 4.0*length(p), 0.0, float(textureSamples-1) ) );
+
+    vec3 no = vec3(0.0);
+
+    for ( int j=0; j<textureSamples; j++ ) {
+        for ( int i=0; i<textureSamples; i++ ) {
+            if ( j<sy && i<sx ) {
+                vec2 st = vec2( float(i), float(j) ) / vec2( float(sx),float(sy) );
+                no += stripeTextureRaw( p + st.x*(ddx_p-p) + st.y*(ddy_p-p));
+            }
+        }
+    }
+
+    return no / float(sx*sy);
+}
+
 void mainImage (out vec4 o, in vec2 p) {
     p /= iResolution.xy;
     p = 2.0 * p - 1.0;
     p.x *= iResolution.x / iResolution.y;
 
-    vec3 cameraPosition = vec3(0.0, 0.5, 3.0);
-    vec3 rayDirection = normalize(vec3(p, -1.0));
+    vec3 camera = vec3(0.0, 0.5, 3.0);
+    vec3 ray = normalize(vec3(p, -1.0));
 
     float b = 1.25 + sin(iGlobalTime) * 0.1;
-    rayDirection.zy *= rotate(b);
-    cameraPosition.zy *= rotate(b);
+    ray.zy *= rotate(b);
+    camera.zy *= rotate(b);
 
     float a = 3.14 + sin(iGlobalTime * 0.1);
-    rayDirection.xz *= rotate(a);
-    cameraPosition.xz *= rotate(a);
+    ray.xz *= rotate(a);
+    camera.xz *= rotate(a);
 
-    float distance = intersect(cameraPosition, rayDirection);
+    float distance = intersect(camera, ray);
 
     vec3 col = vec3(0.);
 
     if (distance > 0.0) {
         col = vec3(0.0);
 
-        vec3 p = cameraPosition + rayDirection * distance;
+        vec3 p = camera + ray * distance;
+
         vec3 normal = getNormal(p);
 
         Material material = getMaterial(p);
+        material = whiteMaterial;
 
-        if (mod(p.x * 25., 1.) > 0.5) {
-            material = blackMaterial;
-        }
-        else {
-            material = whiteMaterial;
-        }
+        vec3 stripe = stripeTexture(p);
 
-        col += material.ambient;
-        col += material.diffuse * max(dot(normal, light), 0.0);
+        col += material.ambient * stripe;
+        col += material.diffuse * stripe * max(dot(normal, light), 0.0);
 
         vec3 halfVector = normalize(light + normal);
         col += material.specular * pow(max(dot(normal, halfVector), 0.0), 1024.0);
