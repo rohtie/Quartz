@@ -26,9 +26,42 @@ Material blackMaterial = Material(
     20.
 );
 
+Material alienMaterial = Material(
+    vec3(1.0),
+    vec3(1.0),
+    vec3(0.3),
+    21.
+);
+
+Material alienEyesMaterial = Material(
+    vec3(1.0),
+    vec3(1.0),
+    vec3(0.3),
+    20.
+);
+
 float smin(float a, float b, float k) {
     float h = clamp( 0.5+0.5*(b-a)/k, 0.0, 1.0 );
     return mix( b, a, h ) - k*h*(1.0-h);
+}
+
+// The "Round" variant uses a quarter-circle to join the two objects smoothly:
+float rmin(float a, float b, float r) {
+    vec2 u = max(vec2(r - a,r - b), vec2(0));
+    return max(r, min (a, b)) - length(u);
+}
+
+float rminbevel(float a, float b, float r) {
+    return min(min(a, b), (a - r + b)*sqrt(0.5));
+}
+
+float rmax(float a, float b, float r) {
+    vec2 u = max(vec2(r + a,r + b), vec2(0));
+    return min(-r, max (a, b)) + length(u);
+}
+
+float rmaxbevel(float a, float b, float r) {
+    return max(max(a, b), (a + r + b)*sqrt(0.5));
 }
 
 vec3 triPlanar(sampler2D tex, vec3 normal, vec3 p) {
@@ -59,23 +92,58 @@ float ground(vec3 p) {
     // Cool spikey thingies
     // p.y += mod(p.x * p.z, 1.) * 3.;
 
-    float result = p.y;
+    float r = p.y;
 
-    return result;
+    return r;
+}
+
+
+float alieneyes(vec3 p) {
+    float r = 1.;
+
+    p -= vec3(0.0, 1.0, 0.0);
+
+    p.z = abs(p.z);
+
+    r = min(r, length(p - vec3(0.7, 0.25, 0.4)) - 0.1);
+
+    return r;
 }
 
 float alien(vec3 p) {
-    float result = 1.;
-    result = min(result, length(p - vec3(0.0, 1.0, 0.0)) - 0.5);
-    return result;
+    float r = 1.;
+
+    p -= vec3(0.0, 1.0, 0.0);
+
+    r = min(r, length(p) - 1.);
+    r = rmin(r, length(p - vec3(0.75, -0.5, 0.0)) - 0.5, 0.5);
+
+    vec3 q = p;
+    q.z = abs(q.z);
+    r = rmaxbevel(r, -(length(q - vec3(0.75, -0.7, 0.75)) - 0.5), 0.4);
+    r = rmax(r, -(length(q - vec3(0., 0., 1.)) - 0.1), 1.);
+    r = rmax(r, -(length(q - vec3(0.75, 0.15, 0.5)) - 0.05), 0.4);
+    r = rmaxbevel(r, -(length(q - vec3(1.5, -0.4, 0.25)) - 0.25), 0.25);
+    r = rmin(r, length(q - vec3(-0.5, 0.8, 0.9)) - 0.25, 0.25);
+
+    vec3 w = p;
+    w = repeat(w, vec3(0.1));
+    // r = length(w) - 0.0000001;
+
+    r = rmin(r, max(r, length(w) - 0.025), 0.05);
+    // r =
+    
+    return r;
 }
 
 float map(vec3 p) {
-    float result = 1.;
-    result = min(result, ground(p));
-    result = smin(result, alien(p), 1.);
+    float r = 1.;
 
-    return result;
+    r = min(r, ground(p));
+    r = rmin(r, alien(p), 0.25);
+    r = rmin(r, alieneyes(p), 0.15);
+
+    return r;
 }
 
 bool isSameDistance(float distanceA, float distanceB, float eps) {
@@ -89,12 +157,15 @@ bool isSameDistance(float distanceA, float distanceB) {
 Material getMaterial(vec3 p) {
     float distance = map(p);
 
-    // if (isSameDistance(distance, hat(p))) {
-    //     return defaultMaterial;
-    // }
-    // else {
+    if (isSameDistance(distance, alieneyes(p), 0.1)) {
+        return alienEyesMaterial;
+    }
+    if (isSameDistance(distance, alien(p), 0.015)) {
+        return alienMaterial;
+    }
+    else {
         return defaultMaterial;
-    // }
+    }
 }
 
 vec3 getNormal(vec3 p) {
@@ -200,9 +271,15 @@ void mainImage (out vec4 o, in vec2 p) {
         vec3 normal = getNormal(p);
 
         Material material = getMaterial(p);
-        material = whiteMaterial;
 
         vec3 stripe = stripeTexture(p);
+
+        if (material == alienEyesMaterial) {
+            stripe = 1. - stripe;
+        }
+
+        if (mod(iGlobalTime * 10., 2.) >= 1.)
+        stripe = 1. - stripe;
 
         col += material.ambient * stripe;
         col += material.diffuse * stripe * max(dot(normal, light), 0.0);
