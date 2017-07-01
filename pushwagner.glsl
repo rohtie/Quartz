@@ -98,7 +98,7 @@ float rooms(vec3 p) {
 	p.z -= sin(p.x) * 0.7;
 	p.z -= sin(p.y) * 0.25;
 
-	r = -(p.z - 0.5);
+	r = -(p.z - 1.5);
 
 	float boxies = 1.;
 	vec3 q = repeat(p, vec3(0.2));
@@ -125,7 +125,8 @@ float spiral(vec3 p) {
     
     // p *= 2.;
     // p *= max(min(p.y * 0.5, -0.4), -1.);
-    p *= max(min(abs(p.y), 0.), 0.6);
+    // p *= max(min(abs(p.y * 0.5), 0.8), 0.5);
+    p *= clamp(abs(p.y * 0.15) + 0.6, 0.7, 2.);
     // p *= mix(max(min(p.y * 0.5, -0.4), -1.), min(max(p.y * 0.5, 0.4), 1.), 0.5) * 5.5;
 
     p.xz *= rotate(1.7);
@@ -145,11 +146,13 @@ float spiral(vec3 p) {
     r = min(r, box(p - vec3(a, 0.0, 0.), vec3(0.025)));
     r = min(r, length(p - vec3(a, 0., 0.025)) - 0.025);
 
-    float size = 0.025;
-	float guard = -boxCheap(p, vec3(size*0.5));
-	// only positive values, but gets small near the box surface:
-	guard = abs(guard) + size*0.1;
-	r = min(r, guard);
+ //    float size = 0.025;
+	// float guard = -boxCheap(p, vec3(size*0.5));
+	// // only positive values, but gets small near the box surface:
+	// guard = abs(guard) + size*0.1;
+	// r = min(r, guard);
+
+	r *= 0.5;
 
     return r;
 }
@@ -251,18 +254,18 @@ vec3 stripeTexture(in vec3 p) {
     return no / float(sx*sy);
 }
 
-vec3 light = normalize(vec3(-0.25, 2., 1.25));
+vec3 light = normalize(vec3(0.5, 3., 2.25));
 
 void mainImage (out vec4 o, in vec2 p) {
     p /= iResolution.xy;
     p = 2.0 * p - 1.0;
     p.x *= iResolution.x / iResolution.y;
 
-    vec3 camera = vec3(0.0, 0.5, 3.5);
+    vec3 camera = vec3(0.5, 1.5 + sin(iGlobalTime * 0.05), 4.5);
     vec3 ray = normalize(vec3(p, -1.0));
 
-    float b = 1.25 + sin(iGlobalTime) * 0.1;
-    // b = 1.5;
+    float b = 1.25 + sin(iGlobalTime * 0.25) * 0.5;
+    b = 1.5;
  
     ray.zy *= rotate(b);
     camera.zy *= rotate(b);
@@ -295,7 +298,7 @@ void mainImage (out vec4 o, in vec2 p) {
         vec3 halfVector = normalize(light + normal);
         col += material.specular * stripe *  pow(max(dot(normal, halfVector), 0.0), material.hardness);
 
-        float att = clamp(1.0 - length(light - p) / 5.0, 0.0, 1.0); att *= att;
+        float att = clamp(1.0 - length(light - p) / 7.0, 0.0, 1.0); att *= att;
         col *= att;
 
         col *= vec3(smoothstep(0.25, 0.75, map(p + light))) + 0.5;
