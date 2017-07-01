@@ -1,3 +1,5 @@
+const float PI = acos(-1.);
+
 struct Material {
     vec3 ambient;
     vec3 diffuse;
@@ -52,16 +54,45 @@ vec3 repeat(vec3 p, vec3 c) {
     return mod(p,c)-0.5*c;
 }
 
+mat2 rotate(float a) {
+    return mat2(-sin(a), cos(a),
+               cos(a), sin(a));
+}
+
+// Repeat around the origin by a fixed angle.
+// For easier use, num of repetitions is use to specify the angle.
+float circleRepeat(inout vec2 p, float repetitions) {
+	float angle = 2*PI/repetitions;
+	float a = atan(p.y, p.x) + angle/2.;
+	float r = length(p);
+	float c = floor(a/angle);
+	a = mod(a,angle) - angle/2.;
+	p = vec2(cos(a), sin(a))*r;
+	// For an odd number of repetitions, fix cell index of the cell in -x direction
+	// (cell index would be e.g. -5 and 5 in the two halves of the cell):
+	if (abs(c) >= (repetitions/2)) c = abs(c);
+	return c;
+}
+
 float box(vec3 p, vec3 b) {
 	vec3 d = abs(p) - b;
 	return min(max(d.x,max(d.y,d.z)),0.0) + length(max(d,0.0));
 }
 
+float vmax(vec3 v) {
+	return max(max(v.x, v.y), v.z);
+}
+
+// Cheap Box: distance to corners is overestimated
+float boxCheap(vec3 p, vec3 b) { //cheap box
+	return vmax(abs(p) - b);
+}
+
 float rooms(vec3 p) {
 	float r = 1.;
 
-	p.z -= 0.5;
-	p.x += 1.0;
+	// p.z -= 0.5;
+	// p.x += 1.0;
 
 	p.z = abs(p.z);
 	p.z -= sin(p.x) * 0.7;
@@ -72,10 +103,52 @@ float rooms(vec3 p) {
 	float boxies = 1.;
 	vec3 q = repeat(p, vec3(0.2));
 	boxies = min(boxies, box(q, vec3(0.1, 0.01, 0.1)));
-	boxies = min(boxies, box(q, vec3(0.01, 0.1, 0.01)));
+	boxies = smin(boxies, box(q, vec3(0.01, 0.1, 0.01)), 0.01);
 	r = max(r, boxies);
 
 	return r;
+}
+
+float spiral(vec3 p) {
+    float r = 1.;
+
+    p.x -= 2.;
+    p.y -= 1.;
+
+
+
+    // p.xz += abs(p.y);
+    // p.x += p.y;
+
+    // p.x = sin(p.x) - p.y;
+
+    
+    // p *= 2.;
+    // p *= max(min(p.y * 0.5, -0.4), -1.);
+    p *= max(min(abs(p.y), 2.), 1.);
+    // p *= mix(max(min(p.y * 0.5, -0.4), -1.), min(max(p.y * 0.5, 0.4), 1.), 0.5) * 5.5;
+
+    p.xz *= rotate(1.7);
+
+    float c = circleRepeat(p.xz, 25.);
+    float a = 0.65;
+    
+    p.y -= c * 0.006;
+
+    float rep = 0.15;
+    p.y = mod(p.y, rep);
+    p.y -= rep * 0.5;
+
+    r = min(r, box(p - vec3(a, 0.0, 0.), vec3(0.025)));
+    r = min(r, length(p - vec3(a, 0., 0.025)) - 0.025);
+
+    float size = 0.025;
+	float guard = -boxCheap(p, vec3(size*0.5));
+	// only positive values, but gets small near the box surface:
+	guard = abs(guard) + size*0.1;
+	r = min(r, guard);
+
+    return r;
 }
 
 float map(vec3 p) {
@@ -83,6 +156,8 @@ float map(vec3 p) {
 
 
     r = min(r, rooms(p));
+    r = min(r, spiral(p));
+
     return r;
 }
 
@@ -143,14 +218,8 @@ float intersect (vec3 camera, vec3 ray) {
     return distance;
 }
 
-mat2 rotate(float a) {
-    return mat2(-sin(a), cos(a),
-               cos(a), sin(a));
-}
-
-
 vec3 stripeTextureRaw(vec3 p) {
-    if (mod(p.y * 100. + p.x * 50., 1.) > 0.5) {
+    if (mod(p.x * 25. - p.y * 25., 1.) > 0.5) {
         return vec3(0.);
     }
     
@@ -186,14 +255,17 @@ void mainImage (out vec4 o, in vec2 p) {
     p = 2.0 * p - 1.0;
     p.x *= iResolution.x / iResolution.y;
 
-    vec3 camera = vec3(0.0, 0.5, 3.0);
+    vec3 camera = vec3(0.0, 0.5, 3.5);
     vec3 ray = normalize(vec3(p, -1.0));
 
     float b = 1.25 + sin(iGlobalTime) * 0.1;
+    // b = 1.5;
+ 
     ray.zy *= rotate(b);
     camera.zy *= rotate(b);
 
     float a = 3.14 + sin(iGlobalTime * 0.1);
+    a = 3.14;
     ray.xz *= rotate(a);
     camera.xz *= rotate(a);
 
@@ -212,6 +284,7 @@ void mainImage (out vec4 o, in vec2 p) {
         material = whiteMaterial;
 
         vec3 stripe = stripeTexture(p);
+        stripe = vec3(1.);
 
         col += material.ambient * stripe;
         col += material.diffuse * stripe * max(dot(normal, light), 0.0);
