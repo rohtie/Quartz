@@ -1,3 +1,5 @@
+#define saturate(x) clamp(x, 0, 1)
+
 struct Material {
     vec3 ambient;
     vec3 diffuse;
@@ -75,14 +77,101 @@ vec3 triPlanar(sampler2D tex, vec3 normal, vec3 p) {
     return blend.x * cX + blend.y * cY + blend.z * cZ;
 }
 
-float capsule (vec3 p, vec3 a, vec3 b, float r) {
-    vec3 pa = p - a, ba = b - a;
-    float h = clamp( dot(pa,ba)/dot(ba,ba), 0.0, 1.0 );
-    return length( pa - ba*h ) - r;
+// Distance to line segment between <a> and <b>, used for fCapsule() version 2below
+float fLineSegment(vec3 p, vec3 a, vec3 b) {
+    vec3 ab = b - a;
+    float t = saturate(dot(p - a, ab) / dot(ab, ab));
+    return length((ab*t + a) - p);
+}
+
+// Capsule version 2: between two end points <a> and <b> with radius r 
+float capsule(vec3 p, vec3 a, vec3 b, float r) {
+    return fLineSegment(p, a, b) - r;
 }
 
 vec3 repeat(vec3 p, vec3 c) {
     return mod(p,c)-0.5*c;
+}
+
+vec2 solve(vec2 p, float upperLimbLength, float lowerLimbLength) {
+    vec2 q = p * (0.5 + 0.5 * (upperLimbLength * upperLimbLength - lowerLimbLength * lowerLimbLength) / dot(p, p));
+
+    float s = upperLimbLength * upperLimbLength / dot(q, q) - 1.0;
+
+    if (s < 0.0) { 
+        return vec2(-100.0);
+    }
+        
+    return q + q.yx * vec2(-1.0, 1.0) * sqrt(s);
+}
+
+float line(vec2 a, vec2 b, vec2 p) {
+    vec2 pa = p - a;
+    vec2 ba = b - a;
+    
+    float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+    
+    return length(pa - ba * h) - 0.04;
+}
+
+float limb(vec3 p, vec2 target, float upperLimbLength, float lowerLimbLength) {    
+    vec2 joint = solve(target, upperLimbLength, lowerLimbLength);
+    vec3 joint3 = vec3(joint, 0.);
+    vec3 target3 = vec3(target, 0.);
+
+    return min(
+        capsule(p, vec3(0.0), joint3, 0.1),
+        capsule(p, joint3, target3, 0.1)
+    );
+}
+
+float limb(vec3 p, vec2 target) {   
+    return limb(p, target, 0.5, 0.5);
+}
+
+float legs(vec3 p) {
+    float speed = 4.0;
+    
+    p.y += sin(iGlobalTime * speed) * 0.05;
+    
+    float leftLeg = limb(p - vec3(0., 0., 0.25),
+        vec2(-0.1 + sin(iGlobalTime * speed) * 0.4, 
+             -0.7 + cos(iGlobalTime * speed) * 0.25)
+    );
+
+    float rightLeg = limb(p - vec3(0., 0., -0.25),
+        vec2(-0.1 + sin(2.75 + iGlobalTime * speed) * 0.4, 
+             -0.7 + cos(2.75 + iGlobalTime * speed) * 0.25)
+    );
+    
+    return min(leftLeg, rightLeg);
+}
+
+float arms(vec3 p) {   
+    p.y = 1.0 - p.y;
+    p.y -= 0.25;
+    p.x -= 0.3;
+    
+    float speed = 4.0;
+    p.y += sin(iGlobalTime * speed) * 0.025;
+    
+    vec2 target = vec2(0.0, 0.5);
+    vec2 ellipse = vec2(-0.5, 0.2);
+    vec2 limbSize = vec2(0.5, 0.4);
+    
+    float leftArm = limb(p - vec3(-0.3, -0.85, -0.7),
+        vec2(target.x - sin(iGlobalTime * speed) * ellipse.x, 
+             target.y - cos(iGlobalTime * speed) * ellipse.y),
+        limbSize.x, limbSize.y
+    );
+    
+    float rightArm = limb(p - vec3(-0.3, -0.85, 0.7),
+        vec2(target.x - sin(2.75 + iGlobalTime * speed) * ellipse.x, 
+             target.y - cos(2.75 + iGlobalTime * speed) * ellipse.y),
+        limbSize.x, limbSize.y
+    );
+    
+    return smin(min(leftArm, rightArm), length(p) -0.15, 0.3);
 }
 
 float ground(vec3 p) {
@@ -101,11 +190,16 @@ float ground(vec3 p) {
 float alieneyes(vec3 p) {
     float r = 1.;
 
-    p -= vec3(0.0, 1.0, 0.0);
+    p -= vec3(0.0, 1.5, 0.0);
+
+    float s = 0.35;
+    p /= s;
 
     p.z = abs(p.z);
 
-    r = min(r, length(p - vec3(0.7, 0.25, 0.4)) - 0.1);
+    r = min(r, length(p - vec3(0.7, 0.25, 0.4)) + 0.05);
+
+    r *= s;
 
     return r;
 }
@@ -113,8 +207,12 @@ float alieneyes(vec3 p) {
 float alien(vec3 p) {
     float r = 1.;
 
-    p -= vec3(0.0, 1.0, 0.0);
+    p -= vec3(0.0, 1.5, 0.0);
 
+    float s = 0.35;
+    p /= s;
+
+    // Head
     r = min(r, length(p) - 1.);
     r = rmin(r, length(p - vec3(0.75, -0.5, 0.0)) - 0.5, 0.5);
 
@@ -126,20 +224,38 @@ float alien(vec3 p) {
     r = rmaxbevel(r, -(length(q - vec3(1.5, -0.4, 0.25)) - 0.25), 0.25);
     r = rmin(r, length(q - vec3(-0.5, 0.8, 0.9)) - 0.25, 0.25);
 
+    // body
+    r = rmin(r, length(q - vec3(-0.5, -1.5, 0.5)) - 0.5, 0.85);
+    r = rmin(r, length(q - vec3(-0.5, -2.9, 0.2)) - 1.25, 1.);
+    r = rmin(r, capsule(q, vec3(-0.5, -4., 0.4), vec3(-0., -5.9, 0.2), 0.75), 0.25);
+    r = rmin(r, length(q - vec3(-0.5, -6.5, 0.5)) - 1., 0.85);
+    r = rmin(r, length(q - vec3(-0.5, -1.7, 1.5)) - 0.5, 0.85);
+
+    // Legs
+    vec3 v = p;
+    v.x -= -0.5;
+    v.y -= -7.;
+    r = rmin(r, legs(v / 3.) * 3., 0.75);
+
+    // arms
+    r = rmin(r, arms(v / 3.) * 3., 0.75);
+
     vec3 w = p;
     w = repeat(w, vec3(0.1));
     // r = length(w) - 0.0000001;
 
     r = rmin(r, max(r, length(w) - 0.025), 0.05);
+
+    r *= s;
     // r =
-    
+
     return r;
 }
 
 float map(vec3 p) {
     float r = 1.;
 
-    r = min(r, ground(p));
+    // r = min(r, ground(p));
     r = rmin(r, alien(p), 0.25);
     r = rmin(r, alieneyes(p), 0.15);
 
@@ -160,11 +276,8 @@ Material getMaterial(vec3 p) {
     if (isSameDistance(distance, alieneyes(p), 0.1)) {
         return alienEyesMaterial;
     }
-    if (isSameDistance(distance, alien(p), 0.015)) {
-        return alienMaterial;
-    }
     else {
-        return defaultMaterial;
+        return alienMaterial;
     }
 }
 
@@ -214,7 +327,7 @@ mat2 rotate(float a) {
 vec3 light = normalize(vec3(10.0, 20.0, 2.0));
 
 vec3 stripeTextureRaw(vec3 p){
-    if (mod(p.x * 5., 1.) > 0.5) {
+    if (mod(p.x * 15., 1.) > 0.5) {
         return vec3(0.);
     }
     
@@ -255,7 +368,7 @@ void mainImage (out vec4 o, in vec2 p) {
     ray.zy *= rotate(b);
     camera.zy *= rotate(b);
 
-    float a = 3.14 + sin(iGlobalTime * 0.1);
+    float a = 3.14 + iGlobalTime;
     ray.xz *= rotate(a);
     camera.xz *= rotate(a);
 
@@ -278,8 +391,8 @@ void mainImage (out vec4 o, in vec2 p) {
             stripe = 1. - stripe;
         }
 
-        if (mod(iGlobalTime * 10., 2.) >= 1.)
-        stripe = 1. - stripe;
+        // if (mod(iGlobalTime * 10., 2.) >= 1.)
+        // stripe = 1. - stripe;
 
         col += material.ambient * stripe;
         col += material.diffuse * stripe * max(dot(normal, light), 0.0);
