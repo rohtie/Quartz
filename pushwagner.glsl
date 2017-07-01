@@ -125,10 +125,13 @@ float spiral(vec3 p) {
     
     // p *= 2.;
     // p *= max(min(p.y * 0.5, -0.4), -1.);
-    p *= max(min(abs(p.y), 2.), 1.);
+    p *= max(min(abs(p.y), 0.), 0.6);
     // p *= mix(max(min(p.y * 0.5, -0.4), -1.), min(max(p.y * 0.5, 0.4), 1.), 0.5) * 5.5;
 
     p.xz *= rotate(1.7);
+
+    // This makes it look like they are moving while walking
+    // p.xz *= rotate(1.7 + iGlobalTime * 0.05);
 
     float c = circleRepeat(p.xz, 25.);
     float a = 0.65;
