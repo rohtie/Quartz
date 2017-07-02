@@ -95,7 +95,7 @@ float rooms(vec3 p) {
 	// p.x += 1.0;
 
 	p.z = abs(p.z);
-	p.z -= sin(p.x) * 0.7;
+	p.z -= sin(p.x) * 0.9;
 	p.z -= sin(p.y) * 0.25;
 
 	r = -(p.z - 1.5);
@@ -106,7 +106,7 @@ float rooms(vec3 p) {
 	boxies = smin(boxies, box(q, vec3(0.01, 0.1, 0.01)), 0.01);
 	r = max(r, boxies);
 
-	return r;
+	return r * 0.75;
 }
 
 float spiral(vec3 p) {
