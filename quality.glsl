@@ -74,6 +74,8 @@ float kaizen(vec2 p) {
     // Zen looks best though...
     r = min(r, zen(p - vec2(0.0, 0.0)));
     
+    p.x += sin(p.y * 10.) * 0.01;
+    p.y += sin(p.x * 10.) * 0.01;
     float ring = capusle(p, vec2(0.0, -0.1), vec2(0.0, 0.1), 0.34); 
     r = min(r, max(-ring, ring - 0.045));
 
