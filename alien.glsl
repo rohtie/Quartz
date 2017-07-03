@@ -1,4 +1,5 @@
 #define saturate(x) clamp(x, 0, 1)
+const float PI = acos(-1.);
 
 struct Material {
     vec3 ambient;
@@ -41,6 +42,11 @@ Material alienEyesMaterial = Material(
     vec3(0.3),
     20.
 );
+
+mat2 rotate(float a) {
+    return mat2(-sin(a), cos(a),
+               cos(a), sin(a));
+}
 
 float smin(float a, float b, float k) {
     float h = clamp( 0.5+0.5*(b-a)/k, 0.0, 1.0 );
@@ -129,49 +135,93 @@ float limb(vec3 p, vec2 target) {
     return limb(p, target, 0.5, 0.5);
 }
 
-float legs(vec3 p) {
+float legs(vec3 p, int animation) {
+    float time = iGlobalTime;
+
+    float limbDifference = 2.75;
+
+    switch(animation) {
+        // Walk
+        case 0:
+            break;
+
+        // Idle
+        case 1:
+            limbDifference = 0.;
+            time = PI * 0.25;
+            break;
+            
+        case 2:
+            limbDifference = 0.;
+            time += 1.5;
+            break;
+    }
+
     float speed = 4.0;
-    
-    p.y += sin(iGlobalTime * speed) * 0.05;
+
+    p.y += sin(time * speed) * 0.05;
     
     float leftLeg = limb(p - vec3(0., 0., 0.25),
-        vec2(-0.1 + sin(iGlobalTime * speed) * 0.4, 
-             -0.7 + cos(iGlobalTime * speed) * 0.25)
+        vec2(-0.1 + sin(time * speed) * 0.4, 
+             -0.7 + cos(time * speed) * 0.25)
     );
 
     float rightLeg = limb(p - vec3(0., 0., -0.25),
-        vec2(-0.1 + sin(2.75 + iGlobalTime * speed) * 0.4, 
-             -0.7 + cos(2.75 + iGlobalTime * speed) * 0.25)
+        vec2(-0.1 + sin(limbDifference + time * speed) * 0.4, 
+             -0.7 + cos(limbDifference + time * speed) * 0.25)
     );
     
     return min(leftLeg, rightLeg);
-}
+} 
 
-float arms(vec3 p) {   
+float arms(vec3 p, int animation) {   
+    float time = iGlobalTime;
+
+    float speed = 4.0;
+    float limbDifference = 2.75;
+
+    switch(animation) {
+        // Walk
+        case 0:
+            break;
+
+        // Idle
+        case 1:
+            limbDifference = 0.;
+            time = PI * 0.275;
+            break;
+
+        case 2:
+            speed = 2.;
+            time += 0.2;
+
+            limbDifference = 0.;
+            break;
+    }
+
     p.y = 1.0 - p.y;
     p.y -= 0.25;
     p.x -= 0.3;
     
-    float speed = 4.0;
-    p.y += sin(iGlobalTime * speed) * 0.025;
+    p.y += sin(time * speed) * 0.025;
     
     vec2 target = vec2(0.0, 0.5);
     vec2 ellipse = vec2(-0.5, 0.2);
     vec2 limbSize = vec2(0.5, 0.4);
     
     float leftArm = limb(p - vec3(-0.3, -0.85, -0.7),
-        vec2(target.x - sin(iGlobalTime * speed) * ellipse.x, 
-             target.y - cos(iGlobalTime * speed) * ellipse.y),
+        vec2(target.x - sin(time * speed) * ellipse.x, 
+             target.y - cos(time * speed) * ellipse.y),
         limbSize.x, limbSize.y
     );
     
     float rightArm = limb(p - vec3(-0.3, -0.85, 0.7),
-        vec2(target.x - sin(2.75 + iGlobalTime * speed) * ellipse.x, 
-             target.y - cos(2.75 + iGlobalTime * speed) * ellipse.y),
+        vec2(target.x - sin(limbDifference + time * speed) * ellipse.x, 
+             target.y - cos(limbDifference + time * speed) * ellipse.y),
         limbSize.x, limbSize.y
     );
     
-    return smin(min(leftArm, rightArm), length(p) -0.15, 0.3);
+    return min(leftArm, rightArm);
 }
 
 float alieneyes(vec3 p) {
@@ -179,7 +229,7 @@ float alieneyes(vec3 p) {
 
     p -= vec3(0.0, 1.5, 0.0);
 
-    float s = 0.35;
+    float s = 0.5;
     p /= s;
 
     p.z = abs(p.z);
@@ -192,11 +242,47 @@ float alieneyes(vec3 p) {
 }
 
 float alien(vec3 p) {
+    /*************************
+     * 0: Walking 
+     * 1: Idle I-pose
+     * 2: Sit-up
+     * 3: squat
+     *************************/
+    int animation = 0;
+    
+    mat2 rotation = rotate(0.0);
+    vec3 position = vec3(0., 0., 0.);
+
+    float time = iGlobalTime;
+    if (iGlobalTime <= 8.75) {
+        position += mix(vec3(0., -1.5, 0.), vec3(0.0, 0.1, 0.0), min(sqrt(iGlobalTime) * 0.35, 1.));
+        animation = 1;
+    }
+    else if (iGlobalTime <= 10.) {
+        position += vec3(0.0, 0.1, 0.0);
+        animation = 2;
+        time = iGlobalTime - 8.75;
+
+    }
+    else if (iGlobalTime <= 20.) {
+        position += vec3(0.0, 0.1, 0.0);
+        animation = 2;
+        time = iGlobalTime - 10.;
+
+        time = min(time, PI * 0.4) + iGlobalTime * 0.01;
+
+        rotation = rotate(time);
+        position.xy += time * 1.32;
+    }
+
+    p.xy *= rotation;
+    p -= position;    
+
     float r = 1.;
 
-    p -= vec3(0.0, 1.5, 0.0);
+    // p -= vec3(0.0, 1.5, 0.0);
 
-    float s = 0.35;
+    float s = 0.5;
     p /= s;
 
     // Head
@@ -222,10 +308,10 @@ float alien(vec3 p) {
     vec3 v = p;
     v.x -= -0.5;
     v.y -= -7.;
-    r = rmin(r, legs(v / 3.) * 3., 0.75);
+    r = rmin(r, legs(v / 3., animation) * 3., 0.75);
 
     // arms
-    r = rmin(r, arms(v / 3.) * 3., 0.75);
+    r = rmin(r, arms(v / 3., animation) * 3., 0.75);
 
     vec3 w = p;
     w = repeat(w, vec3(0.1));
@@ -240,8 +326,8 @@ float alien(vec3 p) {
 }
 
 float ground(vec3 p) {
-    p.y += sin(p.x + iGlobalTime) * 0.25;
-    p.y += cos(p.z + iGlobalTime * 3.) * 0.15;
+    p.y += sin(4.5 + p.x + iGlobalTime) * 0.25;
+    p.y += cos(4.5 + p.z + iGlobalTime * 3.) * 0.15;
     
     // Cool spikey thingies
     // p.y += mod(p.x * p.z, 1.) * 3.;
@@ -254,7 +340,7 @@ float ground(vec3 p) {
 float map(vec3 p) {
     float r = 1.;
 
-    // r = min(r, ground(p));
+    r = min(r, ground(p));
     r = rmin(r, alien(p), 0.25);
     r = rmin(r, alieneyes(p), 0.15);
 
@@ -318,15 +404,10 @@ float intersect (vec3 camera, vec3 ray) {
     return distance;
 }
 
-mat2 rotate(float a) {
-    return mat2(-sin(a), cos(a),
-               cos(a), sin(a));
-}
-
 vec3 light = normalize(vec3(10.0, 20.0, 2.0));
 
 vec3 stripeTextureRaw(vec3 p){
-    if (mod(p.x * 15., 1.) > 0.5) {
+    if (mod(p.x * 5., 1.) > 0.5) {
         return vec3(0.);
     }
     
@@ -364,10 +445,12 @@ void mainImage (out vec4 o, in vec2 p) {
     vec3 ray = normalize(vec3(p, -1.0));
 
     float b = 1.25 + sin(iGlobalTime) * 0.1;
+    b = 1.25;
     ray.zy *= rotate(b);
     camera.zy *= rotate(b);
 
     float a = 3.14 + iGlobalTime;
+    a = 0.75;
     ray.xz *= rotate(a);
     camera.xz *= rotate(a);
 
