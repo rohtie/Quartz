@@ -33,7 +33,7 @@ Material alienMaterial = Material(
     vec3(1.0),
     vec3(1.0),
     vec3(0.3),
-    21.
+    2.
 );
 
 Material alienEyesMaterial = Material(
@@ -225,12 +225,47 @@ float arms(vec3 p, int animation) {
 }
 
 float alieneyes(vec3 p) {
+    mat2 rotation = rotate(0.0);
+    vec3 position = vec3(0., 0., 0.);
+    vec3 headPosition = vec3(0., 0., 0.);
+    vec3 bodyPosition = vec3(0., 0.0, 0.);
+
+    float time = iGlobalTime;
+    if (iGlobalTime <= 8.75) {
+        position += mix(vec3(0., -1.5, 0.), vec3(0.0, 0.1, 0.0), min(sqrt(iGlobalTime) * 0.35, 1.));
+    }
+    else if (iGlobalTime <= 10.) {
+        position += vec3(0.0, 0.1, 0.0);
+        time = iGlobalTime - 8.75;
+
+    }
+    else if (iGlobalTime <= 11.025) {
+        position += vec3(0.0, 0.1, 0.0);
+        time = iGlobalTime - 10.;
+
+        time = min(time, PI * 0.4) + iGlobalTime * 0.01;
+
+        rotation = rotate(time);
+        position.xy += time * 1.32;
+    }
+    else {
+        rotation = rotate(PI * 0.5);
+        position += vec3(0., 4.5, 0.);
+
+        // headPosition.x -= sin(2.75 + iGlobalTime * 8.) * 0.01;
+        bodyPosition.y -= sin(iGlobalTime * 8.) * 0.25;
+    }
+
+    p.xy *= rotation;
+    p -= position;    
+
     float r = 1.;
 
-    p -= vec3(0.0, 1.5, 0.0);
+    // p -= vec3(0.0, 1.5, 0.0);
 
     float s = 0.5;
     p /= s;
+    p += bodyPosition;
 
     p.z = abs(p.z);
 
@@ -252,6 +287,8 @@ float alien(vec3 p) {
     
     mat2 rotation = rotate(0.0);
     vec3 position = vec3(0., 0., 0.);
+    vec3 headPosition = vec3(0., 0., 0.);
+    vec3 bodyPosition = vec3(0., 0.0, 0.);
 
     float time = iGlobalTime;
     if (iGlobalTime <= 8.75) {
@@ -264,7 +301,7 @@ float alien(vec3 p) {
         time = iGlobalTime - 8.75;
 
     }
-    else if (iGlobalTime <= 20.) {
+    else if (iGlobalTime <= 11.025) {
         position += vec3(0.0, 0.1, 0.0);
         animation = 2;
         time = iGlobalTime - 10.;
@@ -273,6 +310,13 @@ float alien(vec3 p) {
 
         rotation = rotate(time);
         position.xy += time * 1.32;
+    }
+    else {
+        rotation = rotate(PI * 0.5);
+        position += vec3(0., 4.5, 0.);
+
+        // headPosition.x -= sin(2.75 + iGlobalTime * 8.) * 0.01;
+        bodyPosition.y -= sin(iGlobalTime * 8.) * 0.25;
     }
 
     p.xy *= rotation;
@@ -285,6 +329,7 @@ float alien(vec3 p) {
     float s = 0.5;
     p /= s;
 
+    p += bodyPosition;
     // Head
     r = min(r, length(p) - 1.);
     r = rmin(r, length(p - vec3(0.75, -0.5, 0.0)) - 0.5, 0.5);
@@ -296,6 +341,7 @@ float alien(vec3 p) {
     r = rmax(r, -(length(q - vec3(0.75, 0.15, 0.5)) - 0.05), 0.4);
     r = rmaxbevel(r, -(length(q - vec3(1.5, -0.4, 0.25)) - 0.25), 0.25);
     r = rmin(r, length(q - vec3(-0.5, 0.8, 0.9)) - 0.25, 0.25);
+
 
     // body
     r = rmin(r, length(q - vec3(-0.5, -1.5, 0.5)) - 0.5, 0.85);
@@ -326,11 +372,19 @@ float alien(vec3 p) {
 }
 
 float ground(vec3 p) {
-    p.y += sin(4.5 + p.x + iGlobalTime) * 0.25;
-    p.y += cos(4.5 + p.z + iGlobalTime * 3.) * 0.15;
+    float speed = 1.;
+    // if (iGlobalTime >= 13.) {
+    //     // Cool spikey thingies
+    //     // p.y += mod(p.x * p.z, 1.) * 3.;        
+    //     // speed = 0.1;
+    //     p.x -= iGlobalTime * 5.;
+    //     p.y *= 1.5;
+    // }
+
+    p.y += sin(4.5 + p.x + iGlobalTime * speed) * 0.25;
+    p.y += cos(4.5 + p.z + iGlobalTime * 3. * speed) * 0.15;
+
     
-    // Cool spikey thingies
-    // p.y += mod(p.x * p.z, 1.) * 3.;
 
     float r = p.y;
 
@@ -404,8 +458,6 @@ float intersect (vec3 camera, vec3 ray) {
     return distance;
 }
 
-vec3 light = normalize(vec3(10.0, 20.0, 2.0));
-
 vec3 stripeTextureRaw(vec3 p){
     if (mod(p.x * 5., 1.) > 0.5) {
         return vec3(0.);
@@ -441,18 +493,33 @@ void mainImage (out vec4 o, in vec2 p) {
     p = 2.0 * p - 1.0;
     p.x *= iResolution.x / iResolution.y;
 
+    float verticalRotation = 1.25;
+    float horizontalRotation = 0.75;
     vec3 camera = vec3(0.0, 0.5, 3.0);
+    vec3 light = normalize(vec3(10.0, 20.0, 2.0));
+    float lightSize = 5.;
+    vec3 stripeOffset = vec3(0.);
+
+    if (iGlobalTime <= 11.025) {
+
+    }
+    else {
+        camera = vec3(1.5, 3., 4.5);
+        verticalRotation = PI * 0.325;
+        lightSize = 8.;
+        light = normalize(vec3(-20.0, 40.0, 50.0));
+        stripeOffset = vec3(iGlobalTime * 1., 0., 0.f);
+        horizontalRotation += 4. + iGlobalTime * 0.5;
+    }
+
     vec3 ray = normalize(vec3(p, -1.0));
 
-    float b = 1.25 + sin(iGlobalTime) * 0.1;
-    b = 1.25;
-    ray.zy *= rotate(b);
-    camera.zy *= rotate(b);
+    ray.zy *= rotate(verticalRotation);
+    camera.zy *= rotate(verticalRotation);
 
-    float a = 3.14 + iGlobalTime;
-    a = 0.75;
-    ray.xz *= rotate(a);
-    camera.xz *= rotate(a);
+    ray.xz *= rotate(horizontalRotation);
+    camera.xz *= rotate(horizontalRotation);
+
 
     float distance = intersect(camera, ray);
 
@@ -467,7 +534,7 @@ void mainImage (out vec4 o, in vec2 p) {
 
         Material material = getMaterial(p);
 
-        vec3 stripe = stripeTexture(p);
+        vec3 stripe = stripeTexture(p - stripeOffset);
 
         if (material == alienEyesMaterial) {
             stripe = 1. - stripe;
@@ -482,7 +549,7 @@ void mainImage (out vec4 o, in vec2 p) {
         vec3 halfVector = normalize(light + normal);
         col += material.specular * pow(max(dot(normal, halfVector), 0.0), material.hardness);
 
-        float att = clamp(1.0 - length(light - p) / 5.0, 0.0, 1.0); att *= att;
+        float att = clamp(1.0 - length(light - p) / lightSize, 0.0, 1.0); att *= att;
         col *= att;
 
         col *= vec3(smoothstep(0.25, 0.75, map(p + light))) + 0.5;
