@@ -228,7 +228,7 @@ void mainImage (out vec4 o, in vec2 p) {
     p = 2.0 * p - 1.0;
     p.x *= iResolution.x / iResolution.y;
 
-    vec3 camera = vec3(0.5, 1.5 + sin(iGlobalTime * 0.05), 4.5);
+    vec3 camera = vec3(0.5, -0.25 + iGlobalTime * 0.05, 5.1 - iGlobalTime * 0.025);
     vec3 ray = normalize(vec3(p, -1.0));
 
     float b = 1.25 + sin(iGlobalTime * 0.25) * 0.5;
