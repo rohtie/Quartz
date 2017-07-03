@@ -333,7 +333,7 @@ void mainImage( out vec4 o, in vec2 p ) {
             // - vec4(25.) * (1.0 - clamp(iGlobalTime * .75, 0., 1.))
         );
     }
-    else if (iGlobalTime < 13.) {
+    else {
         // Outlined text
         // result = max(-result, result - .005);
         result = quartz(p);
