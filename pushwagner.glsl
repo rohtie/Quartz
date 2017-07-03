@@ -59,8 +59,6 @@ mat2 rotate(float a) {
                cos(a), sin(a));
 }
 
-// Repeat around the origin by a fixed angle.
-// For easier use, num of repetitions is use to specify the angle.
 float circleRepeat(inout vec2 p, float repetitions) {
 	float angle = 2*PI/repetitions;
 	float a = atan(p.y, p.x) + angle/2.;
@@ -83,16 +81,8 @@ float vmax(vec3 v) {
 	return max(max(v.x, v.y), v.z);
 }
 
-// Cheap Box: distance to corners is overestimated
-float boxCheap(vec3 p, vec3 b) { //cheap box
-	return vmax(abs(p) - b);
-}
-
 float rooms(vec3 p) {
 	float r = 1.;
-
-	// p.z -= 0.5;
-	// p.x += 1.0;
 
 	p.z = abs(p.z);
 	p.z -= sin(p.x) * 0.9;
@@ -106,7 +96,7 @@ float rooms(vec3 p) {
 	boxies = smin(boxies, box(q, vec3(0.01, 0.1, 0.01)), 0.01);
 	r = max(r, boxies);
 
-	return r * 0.75;
+	return r * 0.875;
 }
 
 float spiral(vec3 p) {
@@ -115,24 +105,8 @@ float spiral(vec3 p) {
     p.x -= 2.;
     p.y -= 1.;
 
-
-
-    // p.xz += abs(p.y);
-    // p.x += p.y;
-
-    // p.x = sin(p.x) - p.y;
-
-    
-    // p *= 2.;
-    // p *= max(min(p.y * 0.5, -0.4), -1.);
-    // p *= max(min(abs(p.y * 0.5), 0.8), 0.5);
     p *= clamp(abs(p.y * 0.15) + 0.6, 0.7, 2.);
-    // p *= mix(max(min(p.y * 0.5, -0.4), -1.), min(max(p.y * 0.5, 0.4), 1.), 0.5) * 5.5;
-
-    p.xz *= rotate(1.7);
-
-    // This makes it look like they are moving while walking
-    // p.xz *= rotate(1.7 + iGlobalTime * 0.05);
+    p.xz *= rotate(1.7 - iGlobalTime * 0.05);
 
     float c = circleRepeat(p.xz, 25.);
     float a = 0.65;
@@ -146,13 +120,7 @@ float spiral(vec3 p) {
     r = min(r, box(p - vec3(a, 0.0, 0.), vec3(0.025)));
     r = min(r, length(p - vec3(a, 0., 0.025)) - 0.025);
 
- //    float size = 0.025;
-	// float guard = -boxCheap(p, vec3(size*0.5));
-	// // only positive values, but gets small near the box surface:
-	// guard = abs(guard) + size*0.1;
-	// r = min(r, guard);
-
-	r *= 0.5;
+	r *= 0.95;
 
     return r;
 }
@@ -197,12 +165,11 @@ vec3 getNormal(vec3 p) {
 }
 
 float intersect (vec3 camera, vec3 ray) {
-    const float maxDistance = 100.0;
-    const float distanceTreshold = 0.0001;
-    const int maxIterations = 500;
+    const float maxDistance = 10.0;
+    const float distanceTreshold = 0.001;
+    const int maxIterations = 75;
 
     float distance = 0.0;
-
     float currentDistance = 1.0;
 
     for (int i = 0; i < maxIterations; i++) {
@@ -289,8 +256,8 @@ void mainImage (out vec4 o, in vec2 p) {
         Material material = getMaterial(p);
         material = whiteMaterial;
 
-        vec3 stripe = stripeTexture(p);
-        stripe = vec3(1.);
+        // vec3 stripe = stripeTexture(p);
+        vec3 stripe = vec3(1.);
 
         col += material.ambient * stripe;
         col += material.diffuse * stripe * max(dot(normal, light), 0.0);
