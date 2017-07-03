@@ -174,19 +174,6 @@ float arms(vec3 p) {
     return smin(min(leftArm, rightArm), length(p) -0.15, 0.3);
 }
 
-float ground(vec3 p) {
-    p.y += sin(p.x + iGlobalTime) * 0.25;
-    p.y += cos(p.z + iGlobalTime * 3.) * 0.15;
-    
-    // Cool spikey thingies
-    // p.y += mod(p.x * p.z, 1.) * 3.;
-
-    float r = p.y;
-
-    return r;
-}
-
-
 float alieneyes(vec3 p) {
     float r = 1.;
 
@@ -248,6 +235,18 @@ float alien(vec3 p) {
 
     r *= s;
     // r =
+
+    return r;
+}
+
+float ground(vec3 p) {
+    p.y += sin(p.x + iGlobalTime) * 0.25;
+    p.y += cos(p.z + iGlobalTime * 3.) * 0.15;
+    
+    // Cool spikey thingies
+    // p.y += mod(p.x * p.z, 1.) * 3.;
+
+    float r = p.y;
 
     return r;
 }
