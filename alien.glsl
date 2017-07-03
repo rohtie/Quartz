@@ -520,7 +520,6 @@ void mainImage (out vec4 o, in vec2 p) {
     ray.xz *= rotate(horizontalRotation);
     camera.xz *= rotate(horizontalRotation);
 
-
     float distance = intersect(camera, ray);
 
     vec3 col = vec3(0.);
