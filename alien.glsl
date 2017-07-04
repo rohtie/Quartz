@@ -95,6 +95,11 @@ float capsule(vec3 p, vec3 a, vec3 b, float r) {
     return fLineSegment(p, a, b) - r;
 }
 
+float box(vec3 p, vec3 b) {
+    vec3 d = abs(p) - b;
+    return min(max(d.x,max(d.y,d.z)),0.0) + length(max(d,0.0));
+}
+
 vec3 repeat(vec3 p, vec3 c) {
     return mod(p,c)-0.5*c;
 }
@@ -155,6 +160,11 @@ float legs(vec3 p, int animation) {
             limbDifference = 0.;
             time += 1.5;
             break;
+
+        case 3:
+            limbDifference = 0.;
+            time = PI * 0.15;
+            break;
     }
 
     float speed = 4.0;
@@ -193,10 +203,14 @@ float arms(vec3 p, int animation) {
 
         case 2:
             speed = 2.;
-            time += 0.2;
+            time += 0.4;
 
             limbDifference = 0.;
             break;
+
+        case 3:
+            time = 5.1;
+            limbDifference = 0.;
     }
 
     p.y = 1.0 - p.y;
@@ -248,12 +262,24 @@ float alieneyes(vec3 p) {
         rotation = rotate(time);
         position.xy += time * 1.32;
     }
-    else {
+    else if (iGlobalTime <= 16.5) {
         rotation = rotate(PI * 0.5);
         position += vec3(0., 4.5, 0.);
 
         // headPosition.x -= sin(2.75 + iGlobalTime * 8.) * 0.01;
         bodyPosition.y -= sin(iGlobalTime * 8.) * 0.25;
+    }
+    else if (iGlobalTime <= 26.) {
+        rotation = rotate(PI * 0.8);
+        position += vec3(0., 5.25, 0.);
+        bodyPosition.y -= sin(iGlobalTime * 3.) * 0.1;
+    }
+    else {
+        rotation = rotate(PI * 0.5);
+        position += vec3(0., 4.5, 0.);
+
+        // headPosition.x -= sin(2.75 + iGlobalTime * 8.) * 0.01;
+        bodyPosition.y -= sin(iGlobalTime * 8.) * 0.25;        
     }
 
     p.xy *= rotation;
@@ -289,6 +315,8 @@ float alien(vec3 p) {
     vec3 position = vec3(0., 0., 0.);
     vec3 headPosition = vec3(0., 0., 0.);
     vec3 bodyPosition = vec3(0., 0.0, 0.);
+    mat2 legRotation = rotate(PI * 0.5);
+
 
     float time = iGlobalTime;
     if (iGlobalTime <= 8.75) {
@@ -310,6 +338,20 @@ float alien(vec3 p) {
 
         rotation = rotate(time);
         position.xy += time * 1.32;
+    }
+    else if (iGlobalTime <= 16.5) {
+        rotation = rotate(PI * 0.5);
+        position += vec3(0., 4.5, 0.);
+
+        // headPosition.x -= sin(2.75 + iGlobalTime * 8.) * 0.01;
+        bodyPosition.y -= sin(iGlobalTime * 8.) * 0.25;
+    }
+    else if (iGlobalTime <= 26.) {
+        rotation = rotate(PI * 0.8);
+        legRotation = rotate(PI * 0.65);
+        position += vec3(0., 5.25, 0.);
+        bodyPosition.y -= sin(iGlobalTime * 3.) * 0.1;
+        animation = 3;
     }
     else {
         rotation = rotate(PI * 0.5);
@@ -350,14 +392,17 @@ float alien(vec3 p) {
     r = rmin(r, length(q - vec3(-0.5, -6.5, 0.5)) - 1., 0.85);
     r = rmin(r, length(q - vec3(-0.5, -1.7, 1.5)) - 0.5, 0.85);
 
+    // arms
     // Legs
     vec3 v = p;
     v.x -= -0.5;
     v.y -= -7.;
-    r = rmin(r, legs(v / 3., animation) * 3., 0.75);
 
-    // arms
     r = rmin(r, arms(v / 3., animation) * 3., 0.75);
+    
+    v.xy *= legRotation;
+    v.xz *= rotate(PI * 0.5);
+    r = rmin(r, legs(v / 3., animation) * 3., 0.75);
 
     vec3 w = p;
     w = repeat(w, vec3(0.1));
@@ -397,6 +442,14 @@ float map(vec3 p) {
     r = min(r, ground(p));
     r = rmin(r, alien(p), 0.25);
     r = rmin(r, alieneyes(p), 0.15);
+
+    if (iGlobalTime > 16.5) {
+        float time = iGlobalTime - 22.;
+        time *= 0.5;
+
+        // p.xy *= rotate(iGlobalTime);
+        r = rmin(r, box(p - vec3(-2. + time, 1.35 - time * 0.85, 0.), vec3(0.15)), 0.25);
+    }
 
     return r;
 }
@@ -502,6 +555,28 @@ void mainImage (out vec4 o, in vec2 p) {
 
     if (iGlobalTime <= 11.025) {
 
+    }
+    else if (iGlobalTime <= 16.5) {
+        camera = vec3(1.5, 3., 4.5);
+        verticalRotation = PI * 0.325;
+        lightSize = 8.;
+        light = normalize(vec3(-20.0, 40.0, 50.0));
+        stripeOffset = vec3(iGlobalTime * 1., 0., 0.f);
+        horizontalRotation += 4. + iGlobalTime * 0.5;
+    }
+    else if (iGlobalTime <= 26.) {
+        float sync = iGlobalTime - 16.5;
+        sync = floor(sync*sync * 1.);
+        sync = min(sync, 8.);
+
+        if (sync > 6.9) {
+            sync -= sin(iGlobalTime);
+        }
+
+        camera = vec3(1.5 - sync * 0.25, 3. - sync * 0.2, 4.5 - sync * 0.5);
+        lightSize = 8.;
+        light = normalize(vec3(-20.0, 40.0, 50.0));
+        horizontalRotation += 3.;
     }
     else {
         camera = vec3(1.5, 3., 4.5);
