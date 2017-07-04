@@ -5,25 +5,25 @@
 	<iChannel src="" filter="" />
 	<iChannel src="" filter="" />
 </clip>
-<clip src="alien" start="783" length="2394" time="0">
+<clip src="alien" start="783" length="2235" time="0">
 	<iChannel src="sound" filter="" />
 	<iChannel src="" filter="" />
 	<iChannel src="" filter="" />
 	<iChannel src="" filter="" />
 </clip>
-<clip src="quality" start="3177" length="121" time="0">
+<clip src="rohtie" start="3018" length="102" time="13.083333">
 	<iChannel src="sound" filter="" />
 	<iChannel src="" filter="" />
 	<iChannel src="" filter="" />
 	<iChannel src="" filter="" />
 </clip>
-<clip src="deform" start="3298" length="1406" time="0">
+<clip src="deform" start="3120" length="1680" time="-0.916666746">
 	<iChannel src="sound" filter="" />
 	<iChannel src="" filter="" />
 	<iChannel src="" filter="" />
 	<iChannel src="" filter="" />
 </clip>
-<clip src="pushwagner" start="4704" length="1988" time="0">
+<clip src="pushwagner" start="4800" length="1988" time="0">
 	<iChannel src="sound" filter="" />
 	<iChannel src="" filter="" />
 	<iChannel src="" filter="" />
