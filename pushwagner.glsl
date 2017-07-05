@@ -33,6 +33,24 @@ float smin(float a, float b, float k) {
     return mix( b, a, h ) - k*h*(1.0-h);
 }
 
+float rmin(float a, float b, float r) {
+    vec2 u = max(vec2(r - a,r - b), vec2(0));
+    return max(r, min (a, b)) - length(u);
+}
+
+float rminbevel(float a, float b, float r) {
+    return min(min(a, b), (a - r + b)*sqrt(0.5));
+}
+
+float rmax(float a, float b, float r) {
+    vec2 u = max(vec2(r + a,r + b), vec2(0));
+    return min(-r, max (a, b)) + length(u);
+}
+
+float rmaxbevel(float a, float b, float r) {
+    return max(max(a, b), (a + r + b)*sqrt(0.5));
+}
+
 vec3 triPlanar(sampler2D tex, vec3 normal, vec3 p) {
     vec3 cX = texture(tex, p.yz).rgb;
     vec3 cY = texture(tex, p.xz).rgb;
@@ -99,6 +117,113 @@ float rooms(vec3 p) {
 	return r * 0.875;
 }
 
+vec2 solve(vec2 p, float upperLimbLength, float lowerLimbLength) {
+    vec2 q = p * (0.5 + 0.5 * (upperLimbLength * upperLimbLength - lowerLimbLength * lowerLimbLength) / dot(p, p));
+
+    float s = upperLimbLength * upperLimbLength / dot(q, q) - 1.0;
+
+    if (s < 0.0) { 
+        return vec2(-100.0);
+    }
+        
+    return q + q.yx * vec2(-1.0, 1.0) * sqrt(s);
+}
+
+float limb(vec3 p, vec2 target, float upperLimbLength, float lowerLimbLength) {    
+    vec2 joint = solve(target, upperLimbLength, lowerLimbLength);
+    vec3 joint3 = vec3(joint, 0.);
+    vec3 target3 = vec3(target, 0.);
+
+    return min(
+        capsule(p, vec3(0.0), joint3, 0.0025),
+        capsule(p, joint3, target3, 0.0025)
+    );
+}
+
+float limb(vec3 p, vec2 target) {   
+    return limb(p, target, 0.5, 0.5);
+}
+
+float legs(vec3 p) {
+    float time = iGlobalTime;
+
+    float speed = 4.0;
+    float limbDifference = 2.75;
+
+    float size = 0.04;
+
+    vec2 target = vec2(-0.1, -0.7) * size;
+    vec2 ellipse = vec2(0.4, 0.25) * size;
+    vec2 limbSize = vec2(0.5, 0.5) * size;
+
+    // p.y += sin(time * speed) * 0.05;
+    
+    float leftLeg = limb(p - vec3(0., 0., 0.0075),
+        vec2(target.x + sin(time * speed) * ellipse.x, 
+             target.y + cos(time * speed) * ellipse.y),
+        limbSize.x, limbSize.y
+    );
+
+    float rightLeg = limb(p - vec3(0., 0., -0.0075),
+        vec2(target.x + sin(limbDifference + time * speed) * ellipse.x, 
+             target.y + cos(limbDifference + time * speed) * ellipse.y),
+        limbSize.x, limbSize.y
+    );
+    
+    return min(leftLeg, rightLeg);
+} 
+
+float arms(vec3 p) {   
+    float time = iGlobalTime;
+
+    float speed = 4.0;
+    float limbDifference = 2.75;
+
+    float size = 0.04;
+
+    p.y *= -1.;
+
+    // p.y += sin(time * speed) * 0.025;
+    
+    vec2 target = vec2(0.0, 0.5) * size;
+    vec2 ellipse = vec2(-0.5, 0.2) * size;
+    vec2 limbSize = vec2(0.5, 0.4) * size;
+    
+    float leftArm = limb(p - vec3(-0.0, -0.0, -0.015),
+        vec2(target.x - sin(time * speed) * ellipse.x, 
+             target.y - cos(time * speed) * ellipse.y),
+        limbSize.x, limbSize.y
+    );
+    
+    float rightArm = limb(p - vec3(-0.0, -0.0, 0.015),
+        vec2(target.x - sin(limbDifference + time * speed) * ellipse.x, 
+             target.y - cos(limbDifference + time * speed) * ellipse.y),
+        limbSize.x, limbSize.y
+    );
+    
+    return min(leftArm, rightArm);
+}
+
+float walkingPerson(vec3 p) {
+	float r = 1.;
+
+	p.x -= 0.65;
+
+	p.xz *= rotate(0.);
+
+    // r = min(r, box(p, vec3(0.035)));
+    // r = min(r, length(p - vec3(0., 0.025, 0.025)) - 0.025);
+    r = min(r, length(p - vec3(0., 0., 0.)) - 0.0125);
+    r = rmin(r, length(p - vec3(-0.0025, -0.03, 0.)) - 0.005, 0.03);
+    r = rmin(r, length(p - vec3(0.0025, 0.025, 0.)) - 0.0075, 0.01);
+    
+    r = rmin(r, arms(p - vec3(0., 0., 0.)), 0.0035);
+    r = rmin(r, legs(p - vec3(0., -0.03, 0.)), 0.0035);
+
+
+	return r;
+}
+
 float spiral(vec3 p) {
     float r = 1.;
 
@@ -109,7 +234,6 @@ float spiral(vec3 p) {
     p.xz *= rotate(1.7 - iGlobalTime * 0.05);
 
     float c = circleRepeat(p.xz, 25.);
-    float a = 0.65;
     
     p.y -= c * 0.006;
 
@@ -117,8 +241,7 @@ float spiral(vec3 p) {
     p.y = mod(p.y, rep);
     p.y -= rep * 0.5;
 
-    r = min(r, box(p - vec3(a, 0.0, 0.), vec3(0.025)));
-    r = min(r, length(p - vec3(a, 0., 0.025)) - 0.025);
+    r = min(r, walkingPerson(p));
 
 	r *= 0.95;
 
