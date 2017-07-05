@@ -104,6 +104,15 @@ vec3 repeat(vec3 p, vec3 c) {
     return mod(p,c)-0.5*c;
 }
 
+float line(vec2 a, vec2 b, vec2 p) {
+    vec2 pa = p - a;
+    vec2 ba = b - a;
+    
+    float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+    
+    return length(pa - ba * h) - 0.04;
+}
+
 vec2 solve(vec2 p, float upperLimbLength, float lowerLimbLength) {
     vec2 q = p * (0.5 + 0.5 * (upperLimbLength * upperLimbLength - lowerLimbLength * lowerLimbLength) / dot(p, p));
 
@@ -114,15 +123,6 @@ vec2 solve(vec2 p, float upperLimbLength, float lowerLimbLength) {
     }
         
     return q + q.yx * vec2(-1.0, 1.0) * sqrt(s);
-}
-
-float line(vec2 a, vec2 b, vec2 p) {
-    vec2 pa = p - a;
-    vec2 ba = b - a;
-    
-    float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
-    
-    return length(pa - ba * h) - 0.04;
 }
 
 float limb(vec3 p, vec2 target, float upperLimbLength, float lowerLimbLength) {    

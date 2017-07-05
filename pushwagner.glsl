@@ -233,11 +233,13 @@ float spiral(vec3 p) {
     p *= clamp(abs(p.y * 0.15) + 0.6, 0.7, 2.);
     p.xz *= rotate(1.7 - iGlobalTime * 0.05);
 
-    float c = circleRepeat(p.xz, 25.);
-    
-    p.y -= c * 0.006;
+    float spiralSpace = 4.;
 
-    float rep = 0.15;
+    float c = circleRepeat(p.xz, 50.);
+
+    p.y -= c * 0.006 * spiralSpace;
+
+    float rep = 0.15 * spiralSpace;
     p.y = mod(p.y, rep);
     p.y -= rep * 0.5;
 
