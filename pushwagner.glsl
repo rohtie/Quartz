@@ -22,10 +22,10 @@ Material redMaterial = Material(
 );
 
 Material stripeMaterial = Material(
-    vec3(1.),
+    vec3(0.4),
     vec3(0.15),
     vec3(0.15),
-    -2.
+    -3.
 );
 
 Material whiteMaterial = Material(
@@ -459,6 +459,8 @@ void mainImage (out vec4 o, in vec2 p) {
         col *= att;
 
         col *= vec3(smoothstep(0.25, 0.75, map(p + light))) + 0.5;
+
+        col += vec3(distance * 0.025);
     }
 
     o.rgb = col;
