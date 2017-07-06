@@ -23,9 +23,9 @@ Material redMaterial = Material(
 
 Material stripeMaterial = Material(
     vec3(1.),
-    vec3(0.75),
-    vec3(0.75),
-    80.
+    vec3(0.15),
+    vec3(0.15),
+    -2.
 );
 
 Material whiteMaterial = Material(
@@ -132,7 +132,7 @@ float standingPerson(vec3 p) {
     p.z = abs(p.z);
     r = rmin(r, length(p - vec3(-0.0025, 0.03, 0.0075)) - 0.002, 0.0015);
 
-    r = rmin(r, capsule(p, vec3(0., 0.0, 0.0125), vec3(0., -0.03, 0.015), 0.0015), 0.005);
+    r = rmin(r, capsule(p, vec3(0., 0.0, 0.015), vec3(0., -0.03, 0.0175), 0.0015), 0.005);
     r = rmin(r, capsule(p, vec3(0., -0.03, 0.0075), vec3(0., -0.075, 0.0075), 0.002), 0.01);
 
     return r;
@@ -166,7 +166,8 @@ float rooms(vec3 p) {
     float boxies = 1.;
     vec3 q = repeat(p, vec3(0.2, 0.2, 0.2));
     boxies = min(boxies, box(q, vec3(0.1, 0.0025, 0.1)));
-    boxies = smin(boxies, box(q, vec3(0.0025, 0.1, 0.0025)), 0.01);
+    boxies = rmin(boxies, box(q, vec3(0.0025, 0.1, 0.0025)), 0.01);
+    boxies = rmin(boxies, box(q - vec3(0., 0.065, 0.), vec3(0.1, 0.0005, 0.0005)), 0.0035);
     r = max(r, boxies);
 
     return r * 0.875;
@@ -378,7 +379,7 @@ float intersect (vec3 camera, vec3 ray) {
 }
 
 vec3 stripeTextureRaw(vec3 p) {
-    if (mod(p.z * 500. + iGlobalTime, 1.) > 0.5) {
+    if (mod(p.y * 150 + 0.1, 1.) > 0.5) {
         return vec3(0.);
     }
 
@@ -444,9 +445,9 @@ void mainImage (out vec4 o, in vec2 p) {
 
         vec3 stripe = vec3(1.);
 
-        // if (material == stripeMaterial) {
-        //     stripe = stripeTexture(p);
-        // }
+        if (material == whiteMaterial) {
+            stripe = stripeTexture(p);
+        }
 
         col += material.ambient * stripe;
         col += material.diffuse * stripe * max(dot(normal, light), 0.0);
