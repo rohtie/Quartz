@@ -90,7 +90,7 @@ float fLineSegment(vec3 p, vec3 a, vec3 b) {
     return length((ab*t + a) - p);
 }
 
-// Capsule version 2: between two end points <a> and <b> with radius r 
+// Capsule version 2: between two end points <a> and <b> with radius r
 float capsule(vec3 p, vec3 a, vec3 b, float r) {
     return fLineSegment(p, a, b) - r;
 }
@@ -107,9 +107,9 @@ vec3 repeat(vec3 p, vec3 c) {
 float line(vec2 a, vec2 b, vec2 p) {
     vec2 pa = p - a;
     vec2 ba = b - a;
-    
+
     float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
-    
+
     return length(pa - ba * h) - 0.04;
 }
 
@@ -118,14 +118,14 @@ vec2 solve(vec2 p, float upperLimbLength, float lowerLimbLength) {
 
     float s = upperLimbLength * upperLimbLength / dot(q, q) - 1.0;
 
-    if (s < 0.0) { 
+    if (s < 0.0) {
         return vec2(-100.0);
     }
-        
+
     return q + q.yx * vec2(-1.0, 1.0) * sqrt(s);
 }
 
-float limb(vec3 p, vec2 target, float upperLimbLength, float lowerLimbLength) {    
+float limb(vec3 p, vec2 target, float upperLimbLength, float lowerLimbLength) {
     vec2 joint = solve(target, upperLimbLength, lowerLimbLength);
     vec3 joint3 = vec3(joint, 0.);
     vec3 target3 = vec3(target, 0.);
@@ -136,7 +136,7 @@ float limb(vec3 p, vec2 target, float upperLimbLength, float lowerLimbLength) {
     );
 }
 
-float limb(vec3 p, vec2 target) {   
+float limb(vec3 p, vec2 target) {
     return limb(p, target, 0.5, 0.5);
 }
 
@@ -155,7 +155,7 @@ float legs(vec3 p, int animation) {
             limbDifference = 0.;
             time = PI * 0.25;
             break;
-            
+
         case 2:
             limbDifference = 0.;
             time += 1.5;
@@ -170,21 +170,21 @@ float legs(vec3 p, int animation) {
     float speed = 4.0;
 
     p.y += sin(time * speed) * 0.05;
-    
+
     float leftLeg = limb(p - vec3(0., 0., 0.25),
-        vec2(-0.1 + sin(time * speed) * 0.4, 
+        vec2(-0.1 + sin(time * speed) * 0.4,
              -0.7 + cos(time * speed) * 0.25)
     );
 
     float rightLeg = limb(p - vec3(0., 0., -0.25),
-        vec2(-0.1 + sin(limbDifference + time * speed) * 0.4, 
+        vec2(-0.1 + sin(limbDifference + time * speed) * 0.4,
              -0.7 + cos(limbDifference + time * speed) * 0.25)
     );
-    
-    return min(leftLeg, rightLeg);
-} 
 
-float arms(vec3 p, int animation) {   
+    return min(leftLeg, rightLeg);
+}
+
+float arms(vec3 p, int animation) {
     float time = iGlobalTime;
 
     float speed = 4.0;
@@ -216,25 +216,25 @@ float arms(vec3 p, int animation) {
     p.y = 1.0 - p.y;
     p.y -= 0.25;
     p.x -= 0.3;
-    
+
     p.y += sin(time * speed) * 0.025;
-    
+
     vec2 target = vec2(0.0, 0.5);
     vec2 ellipse = vec2(-0.5, 0.2);
     vec2 limbSize = vec2(0.5, 0.4);
-    
+
     float leftArm = limb(p - vec3(-0.3, -0.85, -0.7),
-        vec2(target.x - sin(time * speed) * ellipse.x, 
+        vec2(target.x - sin(time * speed) * ellipse.x,
              target.y - cos(time * speed) * ellipse.y),
         limbSize.x, limbSize.y
     );
-    
+
     float rightArm = limb(p - vec3(-0.3, -0.85, 0.7),
-        vec2(target.x - sin(limbDifference + time * speed) * ellipse.x, 
+        vec2(target.x - sin(limbDifference + time * speed) * ellipse.x,
              target.y - cos(limbDifference + time * speed) * ellipse.y),
         limbSize.x, limbSize.y
     );
-    
+
     return min(leftArm, rightArm);
 }
 
@@ -279,11 +279,11 @@ float alieneyes(vec3 p) {
         position += vec3(0., 4.5, 0.);
 
         // headPosition.x -= sin(2.75 + iGlobalTime * 8.) * 0.01;
-        bodyPosition.y -= sin(iGlobalTime * 8.) * 0.25;        
+        bodyPosition.y -= sin(iGlobalTime * 8.) * 0.25;
     }
 
     p.xy *= rotation;
-    p -= position;    
+    p -= position;
 
     float r = 1.;
 
@@ -304,13 +304,13 @@ float alieneyes(vec3 p) {
 
 float alien(vec3 p) {
     /*************************
-     * 0: Walking 
+     * 0: Walking
      * 1: Idle I-pose
      * 2: Sit-up
      * 3: squat
      *************************/
     int animation = 0;
-    
+
     mat2 rotation = rotate(0.0);
     vec3 position = vec3(0., 0., 0.);
     vec3 headPosition = vec3(0., 0., 0.);
@@ -362,7 +362,7 @@ float alien(vec3 p) {
     }
 
     p.xy *= rotation;
-    p -= position;    
+    p -= position;
 
     float r = 1.;
 
@@ -399,7 +399,7 @@ float alien(vec3 p) {
     v.y -= -7.;
 
     r = rmin(r, arms(v / 3., animation) * 3., 0.75);
-    
+
     v.xy *= legRotation;
     v.xz *= rotate(PI * 0.5);
     r = rmin(r, legs(v / 3., animation) * 3., 0.75);
@@ -420,7 +420,7 @@ float ground(vec3 p) {
     float speed = 1.;
     // if (iGlobalTime >= 13.) {
     //     // Cool spikey thingies
-    //     // p.y += mod(p.x * p.z, 1.) * 3.;        
+    //     // p.y += mod(p.x * p.z, 1.) * 3.;
     //     // speed = 0.1;
     //     p.x -= iGlobalTime * 5.;
     //     p.y *= 1.5;
@@ -429,7 +429,7 @@ float ground(vec3 p) {
     p.y += sin(4.5 + p.x + iGlobalTime * speed) * 0.25;
     p.y += cos(4.5 + p.z + iGlobalTime * 3. * speed) * 0.15;
 
-    
+
 
     float r = p.y;
 
@@ -515,14 +515,14 @@ vec3 stripeTextureRaw(vec3 p){
     if (mod(p.x * 5., 1.) > 0.5) {
         return vec3(0.);
     }
-    
+
     return vec3(1.);
 }
 
 const int textureSamples = 10;
 vec3 stripeTexture(in vec3 p) {
     vec3 ddx_p = p + dFdx(p);
-    vec3 ddy_p = p + dFdy(p); 
+    vec3 ddy_p = p + dFdy(p);
 
     int sx = 1 + int( clamp( 4.0*length(p), 0.0, float(textureSamples-1) ) );
     int sy = 1 + int( clamp( 4.0*length(p), 0.0, float(textureSamples-1) ) );

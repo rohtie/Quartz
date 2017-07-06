@@ -45,7 +45,7 @@ float zen(vec2 p) {
 
     r = smin(r, capusle(p, vec2(-0.125, 0.38), vec2(-0.09, 0.33), 0.03, -0.3), 0.05);
     r = smin(r, capusle(p, vec2(0.11, 0.42), vec2(0.04, 0.33), 0.03, 0.3), 0.05);
-    
+
     r = smin(r, capusle(p, vec2(-0.17, 0.26), vec2(0.15, 0.285), 0.01, 0.05), 0.05);
     r = smin(r, capusle(p, vec2(-0.18, 0.14), vec2(0.125, 0.17), 0.01, 0.05), 0.05);
     r = smin(r, capusle(p, vec2(-0.24, 0.015), vec2(0.2, 0.05), 0.01, 0.05), 0.05);
@@ -54,9 +54,9 @@ float zen(vec2 p) {
     r = smin(r, capusle(p, vec2(0.105, -0.01), vec2(0.1, -0.115), 0.02, 0.05), 0.05);
     r = smin(r, capusle(p, vec2(-0.02, 0.26), vec2(-0.02, -0.115), 0.02, 0.05), 0.05);
 
-    r = smin(r, capusle(p, vec2(-0.175, -0.225), vec2(0.15, -0.23), 0.01, 0.05), 0.05);    
+    r = smin(r, capusle(p, vec2(-0.175, -0.225), vec2(0.15, -0.23), 0.01, 0.05), 0.05);
     r = smin(r, capusle(p, vec2(-0.14, -0.4), vec2(0.15, -0.38), 0.01, 0.05), 0.05);
-    
+
     r = smin(r, capusle(p, vec2(-0.175, -0.225), vec2(-0.14, -0.4), 0.02, 0.05), 0.05);
     r = smin(r, capusle(p, vec2(0.15, -0.23), vec2(0.1, -0.38), 0.02, 0.05), 0.05);
 
@@ -73,10 +73,10 @@ float kaizen(vec2 p) {
 
     // Zen looks best though...
     r = min(r, zen(p - vec2(0.0, 0.0)));
-    
+
     p.x += sin(p.y * 10.) * 0.01;
     p.y += sin(p.x * 10.) * 0.01;
-    float ring = capusle(p, vec2(0.0, -0.1), vec2(0.0, 0.1), 0.34); 
+    float ring = capusle(p, vec2(0.0, -0.1), vec2(0.0, 0.1), 0.34);
     r = min(r, max(-ring, ring - 0.045));
 
     return r;
@@ -87,7 +87,7 @@ void mainImage(out vec4 o, in vec2 p) {
     vec2 q = p;
 
     p -= 0.5;
-    p.x *= iResolution.x / iResolution.y; 
+    p.x *= iResolution.x / iResolution.y;
 
     float r = kaizen(p - vec2(0.75, -0.375));
     r = smoothstep(0.0, 0.0125, r);
@@ -95,9 +95,9 @@ void mainImage(out vec4 o, in vec2 p) {
     // Very slight abberation with yellow/blue instead of normal red/blue
     // that everyone overuses
     vec2 rb = texture(iChannel0, q).rb;
-    float g = texture(iChannel0, q + dot(p.x, p.y) * 0.005).g;    
+    float g = texture(iChannel0, q + dot(p.x, p.y) * 0.005).g;
     o.rgb = vec3(rb, g);
-    
+
     // Quality seal
     o.rgb = o.rgb*r + (1. - r) * vec3(.85, 0.15, 0.);
 }

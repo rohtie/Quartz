@@ -98,29 +98,29 @@ mat2 rotate(float a) {
 }
 
 float circleRepeat(inout vec2 p, float repetitions) {
-	float angle = 2*PI/repetitions;
-	float a = atan(p.y, p.x) + angle/2.;
-	float r = length(p);
-	float c = floor(a/angle);
-	a = mod(a,angle) - angle/2.;
-	p = vec2(cos(a), sin(a))*r;
-	// For an odd number of repetitions, fix cell index of the cell in -x direction
-	// (cell index would be e.g. -5 and 5 in the two halves of the cell):
-	if (abs(c) >= (repetitions/2)) c = abs(c);
-	return c;
+    float angle = 2*PI/repetitions;
+    float a = atan(p.y, p.x) + angle/2.;
+    float r = length(p);
+    float c = floor(a/angle);
+    a = mod(a,angle) - angle/2.;
+    p = vec2(cos(a), sin(a))*r;
+    // For an odd number of repetitions, fix cell index of the cell in -x direction
+    // (cell index would be e.g. -5 and 5 in the two halves of the cell):
+    if (abs(c) >= (repetitions/2)) c = abs(c);
+    return c;
 }
 
 float box(vec3 p, vec3 b) {
-	vec3 d = abs(p) - b;
-	return min(max(d.x,max(d.y,d.z)),0.0) + length(max(d,0.0));
+    vec3 d = abs(p) - b;
+    return min(max(d.x,max(d.y,d.z)),0.0) + length(max(d,0.0));
 }
 
 float vmax(vec3 v) {
-	return max(max(v.x, v.y), v.z);
+    return max(max(v.x, v.y), v.z);
 }
 
 float standingPerson(vec3 p) {
-	float r = 1.;
+    float r = 1.;
 
     p.y -= 0.05;
     p.xz *= rotate(PI);
@@ -135,7 +135,7 @@ float standingPerson(vec3 p) {
     r = rmin(r, capsule(p, vec3(0., 0.0, 0.0125), vec3(0., -0.03, 0.015), 0.0015), 0.005);
     r = rmin(r, capsule(p, vec3(0., -0.03, 0.0075), vec3(0., -0.075, 0.0075), 0.002), 0.01);
 
-	return r;
+    return r;
 }
 
 float audience(vec3 p) {
@@ -155,11 +155,11 @@ float audience(vec3 p) {
 }
 
 float rooms(vec3 p) {
-	float r = 1.;
+    float r = 1.;
 
-	p.z = abs(p.z);
-	p.z -= sin(p.x) * 0.9;
-	p.z -= sin(p.y) * 0.25;
+    p.z = abs(p.z);
+    p.z -= sin(p.x) * 0.9;
+    p.z -= sin(p.y) * 0.25;
 
     r = -(p.z - 1.5);
 
@@ -169,7 +169,7 @@ float rooms(vec3 p) {
     boxies = smin(boxies, box(q, vec3(0.0025, 0.1, 0.0025)), 0.01);
     r = max(r, boxies);
 
-	return r * 0.875;
+    return r * 0.875;
 }
 
 vec2 solve(vec2 p, float upperLimbLength, float lowerLimbLength) {
@@ -260,11 +260,11 @@ float arms(vec3 p) {
 }
 
 float walkingPerson(vec3 p) {
-	float r = 1.;
+    float r = 1.;
 
-	p.x -= 0.65;
+    p.x -= 0.65;
 
-	p.xz *= rotate(0.);
+    p.xz *= rotate(0.);
 
     // r = min(r, box(p, vec3(0.035)));
     // r = min(r, length(p - vec3(0., 0.025, 0.025)) - 0.025);
@@ -278,7 +278,7 @@ float walkingPerson(vec3 p) {
     p.z = abs(p.z);
     r = rmin(r, length(p - vec3(-0.0025, 0.03, 0.0075)) - 0.002, 0.0015);
 
-	return r;
+    return r;
 }
 
 float spiral(vec3 p) {
@@ -302,7 +302,7 @@ float spiral(vec3 p) {
 
     r = min(r, walkingPerson(p));
 
-	r *= 0.95;
+    r *= 0.95;
 
     return r;
 }

@@ -170,7 +170,7 @@ float trippy(vec3 p) {
 
     r = r * 0.1;
 
-    return r;   
+    return r;
 }
 
 float Full(vec3 p) {
@@ -198,7 +198,7 @@ float Half(vec3 p) {
 
     r = min(r, max(-p.z, Full(p)));
 
-    return r;   
+    return r;
 }
 
 float HalfPortal(vec3 p) {
@@ -221,7 +221,7 @@ float HalfPortal(vec3 p) {
     r = min(r, max(p.z + mix(0.9, 0.1, min(iGlobalTime * 0.5, 1.)), max(-p.z, Full(p))));
 
     // r = 1.;
-    return r;   
+    return r;
 }
 
 float map(vec3 p, int scene) {
@@ -269,7 +269,7 @@ float intersect(vec3 camera, vec3 ray, int scene) {
         distanceTreshold = 0.0001;
         maxIterations = 500;
     }
-    
+
     float distance = 0.0;
 
     float currentDistance = 1.0;
@@ -304,14 +304,14 @@ vec3 stripeTextureRaw(vec3 p, in int scene) {
     if (mod(math, 1.) > 0.5) {
         return vec3(0.);
     }
-    
+
     return vec3(1.);
 }
 
 const int textureSamples = 10;
 vec3 stripeTexture(in vec3 p, in int scene) {
     vec3 ddx_p = p + dFdx(p);
-    vec3 ddy_p = p + dFdy(p); 
+    vec3 ddy_p = p + dFdy(p);
 
     int sx = 1 + int( clamp( 4.0*length(p), 0.0, float(textureSamples-1) ) );
     int sy = 1 + int( clamp( 4.0*length(p), 0.0, float(textureSamples-1) ) );
@@ -332,7 +332,7 @@ vec3 stripeTexture(in vec3 p, in int scene) {
 
 void render(inout vec3 col, in float distance, in vec3 camera, in vec3 ray, int scene) {
     vec3 light = normalize(vec3(-0.25, 2., 1.25));
-    
+
     if (distance > 0.0) {
         col = vec3(0.0);
 
@@ -373,7 +373,7 @@ void mainImage (out vec4 o, in vec2 p) {
 
     float b = 1.25 + sin(iGlobalTime) * 0.1;
     // b = 1.5;
- 
+
     ray.zy *= rotate(b);
     camera.zy *= rotate(b);
 
