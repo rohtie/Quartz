@@ -17,13 +17,19 @@
 	<iChannel src="" filter="" />
 	<iChannel src="" filter="" />
 </clip>
-<clip src="deform" start="3120" length="1680" time="-0.916666746">
+<clip src="deform" start="3120" length="1205" time="-0.916666746">
 	<iChannel src="sound" filter="" />
 	<iChannel src="" filter="" />
 	<iChannel src="" filter="" />
 	<iChannel src="" filter="" />
 </clip>
-<clip src="pushwagner" start="4800" length="1988" time="0">
+<clip src="rohtie" start="4325" length="110" time="15.0666656">
+	<iChannel src="sound" filter="" />
+	<iChannel src="" filter="" />
+	<iChannel src="" filter="" />
+	<iChannel src="" filter="" />
+</clip>
+<clip src="pushwagner" start="5100" length="1988" time="0">
 	<iChannel src="sound" filter="" />
 	<iChannel src="" filter="" />
 	<iChannel src="" filter="" />
