@@ -14,6 +14,20 @@ Material defaultMaterial = Material(
     1024.
 );
 
+Material redMaterial = Material(
+    vec3(2., 0.25, 0.05),
+    vec3(1., 1.5, 0.),
+    vec3(1., 0.5, 0.),
+    5.
+);
+
+Material stripeMaterial = Material(
+    vec3(1.),
+    vec3(0.75),
+    vec3(0.75),
+    80.
+);
+
 Material whiteMaterial = Material(
     vec3(1.0),
     vec3(1.0),
@@ -72,6 +86,12 @@ vec3 repeat(vec3 p, vec3 c) {
     return mod(p,c)-0.5*c;
 }
 
+vec3 pMod3(inout vec3 p, vec3 size) {
+    vec3 c = floor((p + size*0.5)/size);
+    p = mod(p + size*0.5, size) - size*0.5;
+    return c;
+}
+
 mat2 rotate(float a) {
     return mat2(-sin(a), cos(a),
                cos(a), sin(a));
@@ -115,9 +135,23 @@ float standingPerson(vec3 p) {
     r = rmin(r, capsule(p, vec3(0., 0.0, 0.0125), vec3(0., -0.03, 0.015), 0.0015), 0.005);
     r = rmin(r, capsule(p, vec3(0., -0.03, 0.0075), vec3(0., -0.075, 0.0075), 0.002), 0.01);
 
-    // vec3(0., -0.03, 0.)
-
 	return r;
+}
+
+float audience(vec3 p) {
+    float r = 1.;
+
+    p.z = abs(p.z);
+    p.z -= sin(p.x) * 0.9;
+    p.z -= sin(p.y) * 0.25;
+
+    p.y -= 0.035;
+
+    vec3 w = repeat(p, vec3(0.05, 0.2, 0.05));
+    r = min(r, standingPerson(w - vec3(0., 0.001, 0.001)));
+    r = max(r, -(p.z - 1.5));
+
+    return r;
 }
 
 float rooms(vec3 p) {
@@ -130,16 +164,10 @@ float rooms(vec3 p) {
     r = -(p.z - 1.5);
 
     float boxies = 1.;
-    vec3 q = repeat(p, vec3(0.2));
-    boxies = min(boxies, box(q, vec3(0.1, 0.01, 0.1)));
-    boxies = smin(boxies, box(q, vec3(0.01, 0.1, 0.01)), 0.01);
+    vec3 q = repeat(p, vec3(0.2, 0.2, 0.2));
+    boxies = min(boxies, box(q, vec3(0.1, 0.0025, 0.1)));
+    boxies = smin(boxies, box(q, vec3(0.0025, 0.1, 0.0025)), 0.01);
     r = max(r, boxies);
-
-    p.y -= 0.035;
-    vec3 w = repeat(p, vec3(0.05, 0.2, 0.05));
-    r = min(r, standingPerson(w - vec3(0., 0.001, 0.001)));
-    r = max(r, -(p.z - 1.5));
-
 
 	return r * 0.875;
 }
@@ -284,6 +312,7 @@ float map(vec3 p) {
 
 
     r = min(r, rooms(p));
+    r = min(r, audience(p));
     r = min(r, spiral(p));
 
     return r;
@@ -300,12 +329,15 @@ bool isSameDistance(float distanceA, float distanceB) {
 Material getMaterial(vec3 p) {
     float distance = map(p);
 
-    // if (isSameDistance(distance, hat(p))) {
-    //     return defaultMaterial;
-    // }
-    // else {
-        return defaultMaterial;
-    // }
+    if (isSameDistance(distance, audience(p))) {
+        return stripeMaterial;
+    }
+    else if (isSameDistance(distance, spiral(p))) {
+        return redMaterial;
+    }
+    else {
+        return whiteMaterial;
+    }
 }
 
 vec3 getNormal(vec3 p) {
@@ -346,7 +378,7 @@ float intersect (vec3 camera, vec3 ray) {
 }
 
 vec3 stripeTextureRaw(vec3 p) {
-    if (mod(p.x * 25. - p.y * 25., 1.) > 0.5) {
+    if (mod(p.z * 500. + iGlobalTime, 1.) > 0.5) {
         return vec3(0.);
     }
 
@@ -409,10 +441,12 @@ void mainImage (out vec4 o, in vec2 p) {
         vec3 normal = getNormal(p);
 
         Material material = getMaterial(p);
-        material = whiteMaterial;
 
-        // vec3 stripe = stripeTexture(p);
         vec3 stripe = vec3(1.);
+
+        // if (material == stripeMaterial) {
+        //     stripe = stripeTexture(p);
+        // }
 
         col += material.ambient * stripe;
         col += material.diffuse * stripe * max(dot(normal, light), 0.0);
@@ -420,7 +454,7 @@ void mainImage (out vec4 o, in vec2 p) {
         vec3 halfVector = normalize(light + normal);
         col += material.specular * stripe *  pow(max(dot(normal, halfVector), 0.0), material.hardness);
 
-        float att = clamp(1.0 - length(light - p) / 7.0, 0.0, 1.0); att *= att;
+        float att = clamp(1.0 - length(light - p) / 7.5, 0.0, 1.0); att *= att;
         col *= att;
 
         col *= vec3(smoothstep(0.25, 0.75, map(p + light))) + 0.5;
