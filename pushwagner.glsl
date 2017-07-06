@@ -99,6 +99,27 @@ float vmax(vec3 v) {
 	return max(max(v.x, v.y), v.z);
 }
 
+float standingPerson(vec3 p) {
+	float r = 1.;
+
+    p.y -= 0.05;
+    p.xz *= rotate(PI);
+
+    r = min(r, length(p - vec3(0., 0., 0.)) - 0.0125);
+    r = rmin(r, length(p - vec3(-0.0025, -0.03, 0.)) - 0.005, 0.03);
+    r = rmin(r, length(p - vec3(0.0025, 0.025, 0.)) - 0.0075, 0.01);
+
+    p.z = abs(p.z);
+    r = rmin(r, length(p - vec3(-0.0025, 0.03, 0.0075)) - 0.002, 0.0015);
+
+    r = rmin(r, capsule(p, vec3(0., 0.0, 0.0125), vec3(0., -0.03, 0.015), 0.0015), 0.005);
+    r = rmin(r, capsule(p, vec3(0., -0.03, 0.0075), vec3(0., -0.075, 0.0075), 0.002), 0.01);
+
+    // vec3(0., -0.03, 0.)
+
+	return r;
+}
+
 float rooms(vec3 p) {
 	float r = 1.;
 
@@ -106,13 +127,19 @@ float rooms(vec3 p) {
 	p.z -= sin(p.x) * 0.9;
 	p.z -= sin(p.y) * 0.25;
 
-	r = -(p.z - 1.5);
+    r = -(p.z - 1.5);
 
-	float boxies = 1.;
-	vec3 q = repeat(p, vec3(0.2));
-	boxies = min(boxies, box(q, vec3(0.1, 0.01, 0.1)));
-	boxies = smin(boxies, box(q, vec3(0.01, 0.1, 0.01)), 0.01);
-	r = max(r, boxies);
+    float boxies = 1.;
+    vec3 q = repeat(p, vec3(0.2));
+    boxies = min(boxies, box(q, vec3(0.1, 0.01, 0.1)));
+    boxies = smin(boxies, box(q, vec3(0.01, 0.1, 0.01)), 0.01);
+    r = max(r, boxies);
+
+    p.y -= 0.035;
+    vec3 w = repeat(p, vec3(0.05, 0.2, 0.05));
+    r = min(r, standingPerson(w - vec3(0., 0.001, 0.001)));
+    r = max(r, -(p.z - 1.5));
+
 
 	return r * 0.875;
 }
@@ -122,14 +149,14 @@ vec2 solve(vec2 p, float upperLimbLength, float lowerLimbLength) {
 
     float s = upperLimbLength * upperLimbLength / dot(q, q) - 1.0;
 
-    if (s < 0.0) { 
+    if (s < 0.0) {
         return vec2(-100.0);
     }
-        
+
     return q + q.yx * vec2(-1.0, 1.0) * sqrt(s);
 }
 
-float limb(vec3 p, vec2 target, float upperLimbLength, float lowerLimbLength) {    
+float limb(vec3 p, vec2 target, float upperLimbLength, float lowerLimbLength) {
     vec2 joint = solve(target, upperLimbLength, lowerLimbLength);
     vec3 joint3 = vec3(joint, 0.);
     vec3 target3 = vec3(target, 0.);
@@ -140,7 +167,7 @@ float limb(vec3 p, vec2 target, float upperLimbLength, float lowerLimbLength) {
     );
 }
 
-float limb(vec3 p, vec2 target) {   
+float limb(vec3 p, vec2 target) {
     return limb(p, target, 0.5, 0.5);
 }
 
@@ -157,23 +184,23 @@ float legs(vec3 p) {
     vec2 limbSize = vec2(0.5, 0.5) * size;
 
     // p.y += sin(time * speed) * 0.05;
-    
+
     float leftLeg = limb(p - vec3(0., 0., 0.0075),
-        vec2(target.x + sin(time * speed) * ellipse.x, 
+        vec2(target.x + sin(time * speed) * ellipse.x,
              target.y + cos(time * speed) * ellipse.y),
         limbSize.x, limbSize.y
     );
 
     float rightLeg = limb(p - vec3(0., 0., -0.0075),
-        vec2(target.x + sin(limbDifference + time * speed) * ellipse.x, 
+        vec2(target.x + sin(limbDifference + time * speed) * ellipse.x,
              target.y + cos(limbDifference + time * speed) * ellipse.y),
         limbSize.x, limbSize.y
     );
-    
-    return min(leftLeg, rightLeg);
-} 
 
-float arms(vec3 p) {   
+    return min(leftLeg, rightLeg);
+}
+
+float arms(vec3 p) {
     float time = iGlobalTime;
 
     float speed = 4.0;
@@ -184,23 +211,23 @@ float arms(vec3 p) {
     p.y *= -1.;
 
     // p.y += sin(time * speed) * 0.025;
-    
+
     vec2 target = vec2(0.0, 0.5) * size;
     vec2 ellipse = vec2(-0.5, 0.2) * size;
     vec2 limbSize = vec2(0.5, 0.4) * size;
-    
+
     float leftArm = limb(p - vec3(-0.0, -0.0, -0.015),
-        vec2(target.x - sin(time * speed) * ellipse.x, 
+        vec2(target.x - sin(time * speed) * ellipse.x,
              target.y - cos(time * speed) * ellipse.y),
         limbSize.x, limbSize.y
     );
-    
+
     float rightArm = limb(p - vec3(-0.0, -0.0, 0.015),
-        vec2(target.x - sin(limbDifference + time * speed) * ellipse.x, 
+        vec2(target.x - sin(limbDifference + time * speed) * ellipse.x,
              target.y - cos(limbDifference + time * speed) * ellipse.y),
         limbSize.x, limbSize.y
     );
-    
+
     return min(leftArm, rightArm);
 }
 
@@ -216,10 +243,12 @@ float walkingPerson(vec3 p) {
     r = min(r, length(p - vec3(0., 0., 0.)) - 0.0125);
     r = rmin(r, length(p - vec3(-0.0025, -0.03, 0.)) - 0.005, 0.03);
     r = rmin(r, length(p - vec3(0.0025, 0.025, 0.)) - 0.0075, 0.01);
-    
-    r = rmin(r, arms(p - vec3(0., 0., 0.)), 0.0035);
-    r = rmin(r, legs(p - vec3(0., -0.03, 0.)), 0.0035);
 
+    r = rmin(r, arms(p - vec3(0., 0., 0.)), 0.0035);
+    r = rmin(r, legs(p - vec3(0., -0.03, 0.)), 0.0075);
+
+    p.z = abs(p.z);
+    r = rmin(r, length(p - vec3(-0.0025, 0.03, 0.0075)) - 0.002, 0.0015);
 
 	return r;
 }
@@ -320,14 +349,14 @@ vec3 stripeTextureRaw(vec3 p) {
     if (mod(p.x * 25. - p.y * 25., 1.) > 0.5) {
         return vec3(0.);
     }
-    
+
     return vec3(1.);
 }
 
 const int textureSamples = 10;
 vec3 stripeTexture(in vec3 p) {
     vec3 ddx_p = p + dFdx(p);
-    vec3 ddy_p = p + dFdy(p); 
+    vec3 ddy_p = p + dFdy(p);
 
     int sx = 1 + int( clamp( 4.0*length(p), 0.0, float(textureSamples-1) ) );
     int sy = 1 + int( clamp( 4.0*length(p), 0.0, float(textureSamples-1) ) );
@@ -351,14 +380,15 @@ vec3 light = normalize(vec3(0.5, 3., 2.25));
 void mainImage (out vec4 o, in vec2 p) {
     p /= iResolution.xy;
     p = 2.0 * p - 1.0;
-    p.x *= iResolution.x / iResolution.y;	
+    p.x *= iResolution.x / iResolution.y;
 
     vec3 camera = vec3(0.5, -0.25 + iGlobalTime * 0.05, 5.1 - iGlobalTime * 0.025);
+    // camera = vec3(1.75, 0.4, 2.2);
     vec3 ray = normalize(vec3(p, -1.0));
 
     float b = 1.25 + sin(iGlobalTime * 0.25) * 0.5;
     b = 1.5;
- 
+
     ray.zy *= rotate(b);
     camera.zy *= rotate(b);
 
