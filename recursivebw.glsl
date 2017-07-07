@@ -15,17 +15,17 @@ Material defaultMaterial = Material(
 );
 
 Material whiteMaterial = Material(
-    vec3(1.0),
-    vec3(1.0),
+    vec3(5.),
+    vec3(5.0),
     vec3(0.3),
-    1.
+    1024.
 );
 
 Material blackMaterial = Material(
     vec3(0.0),
-    vec3(0.0),
-    vec3(0.3),
-    20.
+    vec3(2.),
+    vec3(32.),
+    100.
 );
 
 float smin(float a, float b, float k) {
@@ -51,17 +51,6 @@ float rmaxbevel(float a, float b, float r) {
     return max(max(a, b), (a + r + b)*sqrt(0.5));
 }
 
-vec3 triPlanar(sampler2D tex, vec3 normal, vec3 p) {
-    vec3 cX = texture(tex, p.yz).rgb;
-    vec3 cY = texture(tex, p.xz).rgb;
-    vec3 cZ = texture(tex, p.xy).rgb;
-
-    vec3 blend = abs(normal);
-    blend /= blend.x + blend.y + blend.z + 0.001;
-
-    return blend.x * cX + blend.y * cY + blend.z * cZ;
-}
-
 float capsule (vec3 p, vec3 a, vec3 b, float r) {
     vec3 pa = p - a, ba = b - a;
     float h = clamp( dot(pa,ba)/dot(ba,ba), 0.0, 1.0 );
@@ -75,34 +64,6 @@ vec3 repeat(vec3 p, vec3 c) {
 mat2 rotate(float a) {
     return mat2(-sin(a), cos(a),
                cos(a), sin(a));
-}
-
-
-float alieneyes(vec3 p) {
-    float r = 1.;
-    p.y -= 1.5;
-    p.x -= 4.;
-    p.z -= -2.2;
-
-    // p.xz *= rotate(PI * 0.5);
-
-    float s = 1.;
-    p /= s;
-
-    p.x += 3.;
-    p.z = abs(p.z);
-
-    p.x -= 2.;
-    p.xz *= rotate(PI * 0.5 + mod(iGlobalTime * 0.025, 0.25) * PI);
-    p.x += 2.;
-
-    r = min(r, length(p - vec3(0.5, 0.25, 0.75)) + 0.095);
-    // r = min(r, length(p - vec3(0.7, 0.25, 0.4)) - 0.05);
-    // r = min(r, length(p) - 0.05);
-
-    r *= s;
-
-    return r;
 }
 
 float alien(vec3 p) {
@@ -154,25 +115,6 @@ float alien(vec3 p) {
     return r;
 }
 
-float trippy(vec3 p) {
-    float r = 1.;
-
-    p.x -= 1.5;
-    p.y -= 0.75;
-
-    p.z += sin(p.y * 16. + iGlobalTime) * 0.25;
-    p.y -= cos(p.z * 1. + iGlobalTime);
-
-    p -= sin(p * 2.) * 0.55;
-    p.x += sin(p.y) * 2.;
-
-    r = mix(length(p) - 0.15, p.x, 1.25);
-
-    r = r * 0.1;
-
-    return r;
-}
-
 float Full(vec3 p) {
     float r = 1.;
 
@@ -181,46 +123,40 @@ float Full(vec3 p) {
     return r;
 }
 
-float Half(vec3 p) {
-    float r = 1.;
-
+void split(inout vec3 p, int scene) {
     float time = max(0.0, iGlobalTime - 0.15);
 
-    p.x -= 4.;
-    p.z -= -2.5;
+    // p.x -= 3.925;
+    // p.z -= -2.675;
 
-    p.x += 4.;
+    // if (scene == 1) {
+    //     // p.x -= 3.925;
+    //     p.z -= -0.35;
+    // }
+
+    // p.x += 4.;
     p.z = abs(p.z);
 
     p.x -= 2.;
-    p.xz *= rotate(PI * 0.5 + min(time * 0.1, 0.35) * PI);
+    p.xz *= rotate(PI * 0.5 + min(time * 0.75, 0.35) * PI);
     p.x += 2.;
+}
 
+float Half(vec3 p, int scene) {
+    float r = 1.;
+
+    split(p, scene);
     r = min(r, max(-p.z, Full(p)));
 
     return r;
 }
 
-float HalfPortal(vec3 p) {
+float HalfPortal(vec3 p, int scene) {
     float r = 1.;
 
-    float time = max(0.0, iGlobalTime - 0.15);
+    split(p, scene);
+    r = min(r, max(p.z + mix(0.9, 0.1, min(iGlobalTime, 1.)), max(-p.z, Full(p))));
 
-    p.x -= 4.;
-    p.z -= -2.5;
-
-    p.x += 4.;
-    p.z = abs(p.z);
-
-    p.x -= 2.;
-    p.xz *= rotate(PI * 0.5 + min(time * 0.1, 0.35) * PI);
-    p.x += 2.;
-
-    // r = min(r, max(-p.z, Full(p)));
-    // r = min(r, max(p.z + 0.1 - iGlobalTime, max(-p.z, Full(p))));
-    r = min(r, max(p.z + mix(0.9, 0.1, min(iGlobalTime * 0.5, 1.)), max(-p.z, Full(p))));
-
-    // r = 1.;
     return r;
 }
 
@@ -229,12 +165,11 @@ float map(vec3 p, int scene) {
 
     switch(scene) {
         case 0:
-            r = min(r, Half(p));
-            r = rmin(r, alieneyes(p), 0.15);
+            r = min(r, Half(p, scene));
             break;
 
         case 1:
-            r = min(r, trippy(p));
+            r = min(r, Half(p, scene));
             break;
     }
 
@@ -264,11 +199,11 @@ float intersect(vec3 camera, vec3 ray, int scene) {
     float distanceTreshold = 0.001;
     int maxIterations = 50;
 
-    if (scene == 1) {
-        maxDistance = 100.0;
-        distanceTreshold = 0.0001;
-        maxIterations = 500;
-    }
+    // if (scene == 1) {
+    //     maxDistance = 100.0;
+    //     distanceTreshold = 0.0001;
+    //     maxIterations = 500;
+    // }
 
     float distance = 0.0;
 
@@ -331,7 +266,7 @@ vec3 stripeTexture(in vec3 p, in int scene) {
 }
 
 void render(inout vec3 col, in float distance, in vec3 camera, in vec3 ray, int scene) {
-    vec3 light = normalize(vec3(-0.25, 2., 1.25));
+    vec3 light = normalize(vec3(20., -10., 0.));
 
     if (distance > 0.0) {
         col = vec3(0.0);
@@ -340,13 +275,17 @@ void render(inout vec3 col, in float distance, in vec3 camera, in vec3 ray, int 
 
         vec3 normal = getNormal(p, scene);
 
-        Material material = whiteMaterial;
-
-        vec3 stripe = stripeTexture(p, scene);
-
-        if (isSameDistance(map(p, scene), alieneyes(p), 0.4)) {
-            stripe = 1. - stripe;
+        Material material = blackMaterial;
+        if (scene == 1) {
+            material = whiteMaterial;
         }
+
+        // vec3 stripe = stripeTexture(p, scene);
+        vec3 stripe = vec3(1.);
+
+        // if (isSameDistance(map(p, scene), alieneyes(p), 0.4)) {
+        //     material = whiteMaterial;
+        // }
         // stripe = vec3(1.);
 
         col += material.ambient * stripe;
@@ -355,7 +294,7 @@ void render(inout vec3 col, in float distance, in vec3 camera, in vec3 ray, int 
         vec3 halfVector = normalize(light + normal);
         col += material.specular * stripe *  pow(max(dot(normal, halfVector), 0.0), material.hardness);
 
-        float att = clamp(1.0 - length(light - p) / mix(15.0, 5., min(iGlobalTime * 0.25, 1.)), 0.0, 1.0); att *= att;
+        float att = clamp(1.0 - length(light - p) / 5., 0.0, 1.0); att *= att;
         col *= att;
 
         col *= vec3(smoothstep(0.25, 0.75, map(p + light, scene))) + 0.5;
@@ -368,7 +307,9 @@ void mainImage (out vec4 o, in vec2 p) {
     p = 2.0 * p - 1.0;
     p.x *= iResolution.x / iResolution.y;
 
-    vec3 camera = mix(vec3(2.5, -2., 10.5), vec3(0.0, 0.5, 3.5), min(iGlobalTime * 0.25, 1.));
+    // vec3 camera = mix(vec3(2.5, -2., 10.5), vec3(0.0, 0.5, 3.5), min(iGlobalTime, 1.));
+    vec3 camera = mix(vec3(0., -2.5, 10.5), vec3(2., 0., 2.1), min(iGlobalTime, 1.));
+    // camera = vec3(2.5, -2., 10.5);
     vec3 ray = normalize(vec3(p, -1.0));
 
     float b = 1.25 + sin(iGlobalTime) * 0.1;
@@ -378,23 +319,28 @@ void mainImage (out vec4 o, in vec2 p) {
     camera.zy *= rotate(b);
 
     float a = 3.14 + sin(iGlobalTime * 0.1);
-    // a = mix(3.14 + 7., 3.14, min(iGlobalTime * 0.25, 1.));
+    // a = mix(3.14 + 7., 3.14, min(iGlobalTime, 1.));
     a = 3.14;
+
     ray.xz *= rotate(a);
     camera.xz *= rotate(a);
 
-    int scene = 0;
+    int scene = 1;
 
-    if (iGlobalTime > 5.) {
-        scene = 1;
-    }
+    // if (iGlobalTime > 5.) {
+    //     scene = 1;
+    // }
 
     float distance = intersect(camera, ray, scene);
 
     vec3 col = vec3(1.);
 
+    if (scene == 1) {
+        col = vec3(0.);
+    }
+
     vec3 q = camera + ray * distance;
-    if (isSameDistance(map(q, 1) * 0.5, HalfPortal(q), 0.35)) {
+    if (isSameDistance(map(q, 1) * 0.5, HalfPortal(q, scene), 0.35)) {
         scene = 1;
         distance = intersect(camera, ray, scene);
     }

@@ -24,8 +24,8 @@ Material redMaterial = Material(
 Material stripeMaterial = Material(
     vec3(0.4),
     vec3(0.15),
-    vec3(0.15),
-    -3.
+    vec3(0.2),
+    0.5
 );
 
 Material whiteMaterial = Material(
