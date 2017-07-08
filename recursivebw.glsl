@@ -96,6 +96,7 @@ float alien(vec3 p) {
 
     // arms
     vec3 v = p;
+    v.z = abs(v.z);
     r = rmin(r, capsule(v, vec3(-0.5, -1.8, 2.), vec3(0.6, -4., 1.9), 0.3), 0.25);
     r = rmin(r, capsule(v, vec3(0.6, -4., 1.9), vec3(0.6, -4.75, 0.), 0.3), 0.25);
 
@@ -123,18 +124,9 @@ float Full(vec3 p) {
     return r;
 }
 
-void split(inout vec3 p, int scene) {
-    float time = max(0.0, iGlobalTime - 0.15);
+void split(inout vec3 p, bool isOther) {
+    float time = max(0.0, max(0.15, mod(iGlobalTime, 1.)) - 0.15);
 
-    // p.x -= 3.925;
-    // p.z -= -2.675;
-
-    // if (scene == 1) {
-    //     // p.x -= 3.925;
-    //     p.z -= -0.35;
-    // }
-
-    // p.x += 4.;
     p.z = abs(p.z);
 
     p.x -= 2.;
@@ -142,35 +134,36 @@ void split(inout vec3 p, int scene) {
     p.x += 2.;
 }
 
-float Half(vec3 p, int scene) {
+float Half(vec3 p, bool isOther) {
     float r = 1.;
 
-    split(p, scene);
+    split(p, isOther);
     r = min(r, max(-p.z, Full(p)));
 
     return r;
 }
 
-float HalfPortal(vec3 p, int scene) {
+float HalfPortal(vec3 p, bool isOther) {
     float r = 1.;
 
-    split(p, scene);
-    r = min(r, max(p.z + mix(0.9, 0.1, min(iGlobalTime, 1.)), max(-p.z, Full(p))));
+    split(p, isOther);
+    r = min(r, max(p.z + 0.45 - max(0.1, mod(iGlobalTime, 1.)), max(-p.z, Full(p))));
 
     return r;
 }
 
-float map(vec3 p, int scene) {
+float map(vec3 p, bool isOther) {
     float r = 1.;
 
-    switch(scene) {
-        case 0:
-            r = min(r, Half(p, scene));
-            break;
-
-        case 1:
-            r = min(r, Half(p, scene));
-            break;
+    if (!isOther) {
+        r = min(r, Half(p, isOther));
+    }
+    else {
+        p.xz *= rotate(PI * 0.5);
+        p.z += 1.95;
+        p.x -= 3.75;
+        p.y -= 0.75;
+        r = min(r, Full(p));
     }
 
     return r;
@@ -184,54 +177,20 @@ bool isSameDistance(float distanceA, float distanceB) {
     return isSameDistance(distanceA, distanceB, 0.0001);
 }
 
-vec3 getNormal(vec3 p, int scene) {
+vec3 getNormal(vec3 p, bool isOther) {
     vec2 extraPolate = vec2(0.002, 0.0);
 
     return normalize(vec3(
-        map(p + extraPolate.xyy, scene),
-        map(p + extraPolate.yxy, scene),
-        map(p + extraPolate.yyx, scene)
-    ) - map(p, scene));
+        map(p + extraPolate.xyy, isOther),
+        map(p + extraPolate.yxy, isOther),
+        map(p + extraPolate.yyx, isOther)
+    ) - map(p, isOther));
 }
 
-float intersect(vec3 camera, vec3 ray, int scene) {
-    float maxDistance = 15.0;
-    float distanceTreshold = 0.001;
-    int maxIterations = 50;
-
-    // if (scene == 1) {
-    //     maxDistance = 100.0;
-    //     distanceTreshold = 0.0001;
-    //     maxIterations = 500;
-    // }
-
-    float distance = 0.0;
-
-    float currentDistance = 1.0;
-
-    for (int i = 0; i < maxIterations; i++) {
-        if (currentDistance < distanceTreshold || distance > maxDistance) {
-            break;
-        }
-
-        vec3 p = camera + ray * distance;
-
-        currentDistance = map(p, scene);
-
-        distance += currentDistance;
-    }
-
-    if (distance > maxDistance) {
-        return -1.0;
-    }
-
-    return distance;
-}
-
-vec3 stripeTextureRaw(vec3 p, in int scene) {
+vec3 stripeTextureRaw(vec3 p, in bool isOther) {
     float math = p.x * 5.;
 
-    if (scene == 1) {
+    if (isOther) {
         math = p.x * 1. - p.y * 25.;
     }
 
@@ -244,7 +203,7 @@ vec3 stripeTextureRaw(vec3 p, in int scene) {
 }
 
 const int textureSamples = 10;
-vec3 stripeTexture(in vec3 p, in int scene) {
+vec3 stripeTexture(in vec3 p, in bool isOther) {
     vec3 ddx_p = p + dFdx(p);
     vec3 ddy_p = p + dFdy(p);
 
@@ -257,7 +216,7 @@ vec3 stripeTexture(in vec3 p, in int scene) {
         for ( int i=0; i<textureSamples; i++ ) {
             if ( j<sy && i<sx ) {
                 vec2 st = vec2( float(i), float(j) ) / vec2( float(sx),float(sy) );
-                no += stripeTextureRaw( p + st.x*(ddx_p-p) + st.y*(ddy_p-p), scene);
+                no += stripeTextureRaw( p + st.x*(ddx_p-p) + st.y*(ddy_p-p), isOther);
             }
         }
     }
@@ -265,28 +224,58 @@ vec3 stripeTexture(in vec3 p, in int scene) {
     return no / float(sx*sy);
 }
 
-void render(inout vec3 col, in float distance, in vec3 camera, in vec3 ray, int scene) {
-    vec3 light = normalize(vec3(20., -10., 0.));
+float intersect(vec3 camera, vec3 ray, bool isOther) {
+    float maxDistance = 15.0;
+    float distanceTreshold = 0.001;
+    int maxIterations = 50;
+
+
+    float distance = 0.0;
+    float currentDistance = 1.0;
+
+    for (int i = 0; i < maxIterations; i++) {
+        if (currentDistance < distanceTreshold || distance > maxDistance) {
+            break;
+        }
+
+        vec3 p = camera + ray * distance;
+
+        currentDistance = map(p, isOther);
+
+        distance += currentDistance;
+    }
+
+    if (distance > maxDistance) {
+        return -1.0;
+    }
+
+    return distance;
+}
+
+void render(inout vec3 col, in float distance, in vec3 camera, in vec3 ray, bool isWhite, bool isOther) {
+    vec3 light = normalize(vec3(500., -2000., -750.));
 
     if (distance > 0.0) {
         col = vec3(0.0);
 
         vec3 p = camera + ray * distance;
 
-        vec3 normal = getNormal(p, scene);
+        vec3 normal = getNormal(p, isOther);
 
         Material material = blackMaterial;
-        if (scene == 1) {
-            material = whiteMaterial;
+        if (isOther) {
+            if (!isWhite) {
+                material = whiteMaterial;
+            }
+        }
+        else {
+            if (isWhite) {
+                material = whiteMaterial;
+            }
         }
 
-        // vec3 stripe = stripeTexture(p, scene);
+        // vec3 stripe = stripeTexture(p, isOther);
         vec3 stripe = vec3(1.);
-
-        // if (isSameDistance(map(p, scene), alieneyes(p), 0.4)) {
-        //     material = whiteMaterial;
-        // }
-        // stripe = vec3(1.);
 
         col += material.ambient * stripe;
         col += material.diffuse * stripe * max(dot(normal, light), 0.0);
@@ -294,10 +283,10 @@ void render(inout vec3 col, in float distance, in vec3 camera, in vec3 ray, int 
         vec3 halfVector = normalize(light + normal);
         col += material.specular * stripe *  pow(max(dot(normal, halfVector), 0.0), material.hardness);
 
-        float att = clamp(1.0 - length(light - p) / 5., 0.0, 1.0); att *= att;
+        float att = clamp(1.0 - length(light - p) / 9., 0.0, 1.0); att *= att;
         col *= att;
 
-        col *= vec3(smoothstep(0.25, 0.75, map(p + light, scene))) + 0.5;
+        col *= vec3(smoothstep(0.25, 0.75, map(p + light, isOther))) + 0.5;
     }
 }
 
@@ -307,45 +296,43 @@ void mainImage (out vec4 o, in vec2 p) {
     p = 2.0 * p - 1.0;
     p.x *= iResolution.x / iResolution.y;
 
-    // vec3 camera = mix(vec3(2.5, -2., 10.5), vec3(0.0, 0.5, 3.5), min(iGlobalTime, 1.));
-    vec3 camera = mix(vec3(0., -2.5, 10.5), vec3(2., 0., 2.1), min(iGlobalTime, 1.));
-    // camera = vec3(2.5, -2., 10.5);
+    bool isOther = false;
+    bool isWhite = false;
+    isWhite = mod(iGlobalTime, 2.) > 1.;
+
+    vec3 camera = mix(vec3(0., -2.5, 10.5), vec3(2., 0., 3.), mod(iGlobalTime, 1.));
     vec3 ray = normalize(vec3(p, -1.0));
 
-    float b = 1.25 + sin(iGlobalTime) * 0.1;
-    // b = 1.5;
+    float b = 1.35;
+    float a = 3.14;
 
     ray.zy *= rotate(b);
     camera.zy *= rotate(b);
-
-    float a = 3.14 + sin(iGlobalTime * 0.1);
-    // a = mix(3.14 + 7., 3.14, min(iGlobalTime, 1.));
-    a = 3.14;
-
     ray.xz *= rotate(a);
     camera.xz *= rotate(a);
 
-    int scene = 1;
+    float distance = intersect(camera, ray, false);
 
-    // if (iGlobalTime > 5.) {
-    //     scene = 1;
-    // }
-
-    float distance = intersect(camera, ray, scene);
-
-    vec3 col = vec3(1.);
-
-    if (scene == 1) {
-        col = vec3(0.);
-    }
 
     vec3 q = camera + ray * distance;
-    if (isSameDistance(map(q, 1) * 0.5, HalfPortal(q, scene), 0.35)) {
-        scene = 1;
-        distance = intersect(camera, ray, scene);
+    if (isSameDistance(map(q, false) * 0.5, HalfPortal(q, false), 0.35)) {
+        distance = intersect(camera, ray, true);
+        isOther = true;
     }
 
-    render(col, distance, camera, ray, scene);
+    vec3 col = vec3(1.);
+    if (isOther) {
+        if (!isWhite) {
+            col = vec3(0.);
+        }
+    }
+    else  {
+        if (isWhite) {
+            col = vec3(0.);
+        }
+    }
+
+    render(col, distance, camera, ray, isWhite, isOther);
 
     o.rgb = col;
 }
