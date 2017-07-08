@@ -447,8 +447,7 @@ float map(vec3 p) {
         float time = iGlobalTime - 22.;
         time *= 0.5;
 
-        // p.xy *= rotate(iGlobalTime);
-        r = rmin(r, box(p - vec3(-2. + time, 1.35 - time * 0.85, 0.), vec3(0.15)), 0.25);
+        r = rmin(r, box(p - vec3(-1.5 + time, 1.25 - time * 0.85, 0.), vec3(0.1)), 0.05);
     }
 
     return r;
