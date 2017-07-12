@@ -23,31 +23,19 @@
 	<iChannel src="" filter="" />
 	<iChannel src="" filter="" />
 </clip>
-<clip src="rohtie" start="4325" length="110" time="15.0666656">
+<clip src="rohtie" start="4325" length="58" time="15.0666656">
 	<iChannel src="sound" filter="" />
 	<iChannel src="" filter="" />
 	<iChannel src="" filter="" />
 	<iChannel src="" filter="" />
 </clip>
-<clip src="recursivebw" start="4435" length="393" time="0">
+<clip src="recursivebw" start="4383" length="452" time="0">
 	<iChannel src="sound" filter="" />
 	<iChannel src="" filter="" />
 	<iChannel src="" filter="" />
 	<iChannel src="" filter="" />
 </clip>
-<clip src="rohtie" start="4828" length="50" time="14.0833321">
-	<iChannel src="sound" filter="" />
-	<iChannel src="" filter="" />
-	<iChannel src="" filter="" />
-	<iChannel src="" filter="" />
-</clip>
-<clip src="pushwagner" start="4878" length="2557" time="0">
-	<iChannel src="sound" filter="" />
-	<iChannel src="" filter="" />
-	<iChannel src="" filter="" />
-	<iChannel src="" filter="" />
-</clip>
-<clip src=" " start="7435" length="300" time="0">
+<clip src="pushwagner" start="4835" length="2600" time="0">
 	<iChannel src="sound" filter="" />
 	<iChannel src="" filter="" />
 	<iChannel src="" filter="" />

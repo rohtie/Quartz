@@ -1,3 +1,6 @@
+#define TIME_CURVE iGlobalTime + iGlobalTime * iGlobalTime * 0.25
+// #define TIME_CURVE 3. - (iGlobalTime + iGlobalTime * iGlobalTime * 0.5)
+
 const float PI = acos(-1.);
 
 struct Material {
@@ -67,15 +70,13 @@ mat2 rotate(float a) {
 }
 
 float alien(vec3 p) {
-    float r = 1.;
-
     p.y -= 1.5;
     p.xz *= rotate(PI * 0.5);
 
     float s = 1.;
     p /= s;
 
-    r = min(r, length(p) - 1.);
+    float r = length(p) - 1.;
     r = rmin(r, length(p - vec3(0.75, -0.5, 0.0)) - 0.5, 0.5);
 
     vec3 q = p;
@@ -117,15 +118,11 @@ float alien(vec3 p) {
 }
 
 float Full(vec3 p) {
-    float r = 1.;
-
-    r = min(r, alien(p));
-
-    return r;
+    return alien(p);
 }
 
 void split(inout vec3 p, bool isOther) {
-    float time = max(0.0, max(0.15, mod(iGlobalTime, 1.)) - 0.15);
+    float time = max(0.0, max(0.15, mod(TIME_CURVE, 1.)) - 0.15);
 
     p.z = abs(p.z);
 
@@ -135,38 +132,36 @@ void split(inout vec3 p, bool isOther) {
 }
 
 float Half(vec3 p, bool isOther) {
-    float r = 1.;
-
     split(p, isOther);
-    r = min(r, max(-p.z, Full(p)));
-
-    return r;
+    return max(-p.z, Full(p));
 }
 
 float HalfPortal(vec3 p, bool isOther) {
-    float r = 1.;
-
     split(p, isOther);
-    r = min(r, max(p.z + 0.45 - max(0.1, mod(iGlobalTime, 1.)), max(-p.z, Full(p))));
+    return max(p.z + 0.45 - max(0.1, mod(TIME_CURVE, 1.)), max(-p.z, Full(p)));
+}
 
-    return r;
+float bg(vec3 p, bool isOther) {
+    if (isOther) {
+        p.x -= -5.;
+    }
+
+    return p.x;
 }
 
 float map(vec3 p, bool isOther) {
-    float r = 1.;
+    float r = bg(p, isOther);
 
     if (!isOther) {
-        r = min(r, Half(p, isOther));
-    }
-    else {
-        p.xz *= rotate(PI * 0.5);
-        p.z += 1.95;
-        p.x -= 3.75;
-        p.y -= 0.75;
-        r = min(r, Full(p));
+        return min(r, Half(p, isOther));
     }
 
-    return r;
+    p.xz *= rotate(PI * 0.5);
+    p.z += 1.95;
+    p.x -= 3.75;
+    p.y -= 0.75;
+
+    return min(r, Full(p));
 }
 
 bool isSameDistance(float distanceA, float distanceB, float eps) {
@@ -187,44 +182,7 @@ vec3 getNormal(vec3 p, bool isOther) {
     ) - map(p, isOther));
 }
 
-vec3 stripeTextureRaw(vec3 p, in bool isOther) {
-    float math = p.x * 5.;
-
-    if (isOther) {
-        math = p.x * 1. - p.y * 25.;
-    }
-
-
-    if (mod(math, 1.) > 0.5) {
-        return vec3(0.);
-    }
-
-    return vec3(1.);
-}
-
-const int textureSamples = 10;
-vec3 stripeTexture(in vec3 p, in bool isOther) {
-    vec3 ddx_p = p + dFdx(p);
-    vec3 ddy_p = p + dFdy(p);
-
-    int sx = 1 + int( clamp( 4.0*length(p), 0.0, float(textureSamples-1) ) );
-    int sy = 1 + int( clamp( 4.0*length(p), 0.0, float(textureSamples-1) ) );
-
-    vec3 no = vec3(0.0);
-
-    for ( int j=0; j<textureSamples; j++ ) {
-        for ( int i=0; i<textureSamples; i++ ) {
-            if ( j<sy && i<sx ) {
-                vec2 st = vec2( float(i), float(j) ) / vec2( float(sx),float(sy) );
-                no += stripeTextureRaw( p + st.x*(ddx_p-p) + st.y*(ddy_p-p), isOther);
-            }
-        }
-    }
-
-    return no / float(sx*sy);
-}
-
-float intersect(vec3 camera, vec3 ray, bool isOther) {
+float intersect(in vec3 camera, in vec3 ray, in bool isOther) {
     float maxDistance = 15.0;
     float distanceTreshold = 0.001;
     int maxIterations = 50;
@@ -274,7 +232,6 @@ void render(inout vec3 col, in float distance, in vec3 camera, in vec3 ray, bool
             }
         }
 
-        // vec3 stripe = stripeTexture(p, isOther);
         vec3 stripe = vec3(1.);
 
         col += material.ambient * stripe;
@@ -287,6 +244,20 @@ void render(inout vec3 col, in float distance, in vec3 camera, in vec3 ray, bool
         col *= att;
 
         col *= vec3(smoothstep(0.25, 0.75, map(p + light, isOther))) + 0.5;
+
+        if (isSameDistance(map(p, isOther), bg(p, isOther), 0.1)) {
+            col = vec3(1.);
+            if (isOther) {
+                if (!isWhite) {
+                    col = vec3(0.);
+                }
+            }
+            else  {
+                if (isWhite) {
+                    col = vec3(0.);
+                }
+            }
+        }
     }
 }
 
@@ -341,9 +312,9 @@ void mainImage (out vec4 o, in vec2 p) {
 
     bool isOther = false;
     bool isWhite = false;
-    isWhite = mod(iGlobalTime, 2.) > 1.;
+    isWhite = mod(TIME_CURVE, 2.) > 1.;
 
-    vec3 camera = mix(vec3(0., -2.5, 10.5), vec3(2., 0., 3.), mod(iGlobalTime, 1.));
+    vec3 camera = mix(vec3(0., -2.5, 10.5), vec3(2., 0., 3.), mod(TIME_CURVE, 1.));
     vec3 ray = normalize(vec3(p, -1.0));
 
     float b = 1.35;
@@ -363,17 +334,7 @@ void mainImage (out vec4 o, in vec2 p) {
         isOther = true;
     }
 
-    vec3 col = vec3(1.);
-    if (isOther) {
-        if (!isWhite) {
-            col = vec3(0.);
-        }
-    }
-    else  {
-        if (isWhite) {
-            col = vec3(0.);
-        }
-    }
+    vec3 col = vec3(0.);
 
     render(col, distance, camera, ray, isWhite, isOther);
 

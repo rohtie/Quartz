@@ -15,7 +15,7 @@ Material defaultMaterial = Material(
 );
 
 Material redMaterial = Material(
-    vec3(2., 0.25, 0.05),
+    vec3(4., 0.25, 0.05),
     vec3(1., 1.5, 0.),
     vec3(1., 0.5, 0.),
     5.
@@ -23,9 +23,9 @@ Material redMaterial = Material(
 
 Material stripeMaterial = Material(
     vec3(0.4),
-    vec3(0.15),
-    vec3(0.2),
-    0.5
+    vec3(0.3),
+    vec3(2.),
+    30.
 );
 
 Material whiteMaterial = Material(
@@ -120,12 +120,10 @@ float vmax(vec3 v) {
 }
 
 float standingPerson(vec3 p) {
-    float r = 1.;
-
     p.y -= 0.05;
     p.xz *= rotate(PI);
 
-    r = min(r, length(p - vec3(0., 0., 0.)) - 0.0125);
+    float r = length(p - vec3(0., 0., 0.)) - 0.0125;
     r = rmin(r, length(p - vec3(-0.0025, -0.03, 0.)) - 0.005, 0.03);
     r = rmin(r, length(p - vec3(0.0025, 0.025, 0.)) - 0.0075, 0.01);
 
@@ -139,8 +137,6 @@ float standingPerson(vec3 p) {
 }
 
 float audience(vec3 p) {
-    float r = 1.;
-
     p.z = abs(p.z);
     p.z -= sin(p.x) * 0.9;
     p.z -= sin(p.y) * 0.25;
@@ -148,20 +144,18 @@ float audience(vec3 p) {
     p.y -= 0.035;
 
     vec3 w = repeat(p, vec3(0.05, 0.2, 0.05));
-    r = min(r, standingPerson(w - vec3(0., 0.001, 0.001)));
+    float r = standingPerson(w - vec3(0., 0.001, 0.001));
     r = max(r, -(p.z - 1.5));
 
     return r;
 }
 
 float rooms(vec3 p) {
-    float r = 1.;
-
     p.z = abs(p.z);
     p.z -= sin(p.x) * 0.9;
     p.z -= sin(p.y) * 0.25;
 
-    r = -(p.z - 1.5);
+    float r = -(p.z - 1.5);
 
     float boxies = 1.;
     vec3 q = repeat(p, vec3(0.2, 0.2, 0.2));
@@ -261,15 +255,13 @@ float arms(vec3 p) {
 }
 
 float walkingPerson(vec3 p) {
-    float r = 1.;
-
     p.x -= 0.65;
 
     p.xz *= rotate(0.);
 
     // r = min(r, box(p, vec3(0.035)));
     // r = min(r, length(p - vec3(0., 0.025, 0.025)) - 0.025);
-    r = min(r, length(p - vec3(0., 0., 0.)) - 0.0125);
+    float r = length(p - vec3(0., 0., 0.)) - 0.0125;
     r = rmin(r, length(p - vec3(-0.0025, -0.03, 0.)) - 0.005, 0.03);
     r = rmin(r, length(p - vec3(0.0025, 0.025, 0.)) - 0.0075, 0.01);
 
@@ -283,8 +275,6 @@ float walkingPerson(vec3 p) {
 }
 
 float spiral(vec3 p) {
-    float r = 1.;
-
     p.x -= 2.;
     p.y -= 1.;
 
@@ -301,7 +291,7 @@ float spiral(vec3 p) {
     p.y = mod(p.y, rep);
     p.y -= rep * 0.5;
 
-    r = min(r, walkingPerson(p));
+    float r = walkingPerson(p);
 
     r *= 0.95;
 
@@ -309,10 +299,7 @@ float spiral(vec3 p) {
 }
 
 float map(vec3 p) {
-    float r = 1.;
-
-
-    r = min(r, rooms(p));
+    float r = rooms(p);
     r = min(r, audience(p));
     r = min(r, spiral(p));
 

@@ -176,8 +176,8 @@ float z(vec2 p) {
 
     result = min(result, max(-p.x, downHalfCircle(p - vec2(.0, .18), .25)));
     result = min(result, max(p.x, upHalfCircle(p - vec2(.0, -.18), .25)));
-    result = min(result, rect(p - vec2(-0., 0.19), vec2(0.5, 0.01)));
-    result = min(result, rect(p - vec2(0., -0.19), vec2(0.5, 0.01)));
+    result = min(result, rect(p - vec2(-0., 0.19), vec2(0.5, 0.0175)));
+    result = min(result, rect(p - vec2(0., -0.19), vec2(0.5, 0.0175)));
 
     return result;
 }
@@ -219,8 +219,8 @@ float u2(vec2 p) {
     result = min(result, leftHalfCircle(p - vec2(-.0125, .0), .125));
     result = min(result, rightHalfCircle(p - vec2(.0125, .0), .125));
 
-    result = min(result, rect(p - vec2(-.075, .125), vec2(.125, .2)));
-    result = min(result, rect(p - vec2(.075, .125), vec2(.125, .2)));
+    result = min(result, rect(p - vec2(-.075, .115), vec2(.125, .225)));
+    result = min(result, rect(p - vec2(.075, .115), vec2(.125, .225)));
 
     return result;
 }
@@ -390,7 +390,7 @@ void mainImage( out vec4 o, in vec2 p ) {
 
 
         float flipflop = mod(iGlobalTime * 50., 2.);
-        result = smoothstep(.0, .01, result);
+        result = smoothstep(.0, .005, result);
 
         if (flipflop <= 1.0) {
             result = 1.0 - result;
