@@ -293,19 +293,20 @@ float intersect(vec3 camera, vec3 ray, int scene) {
     return distance;
 }
 
-vec3 stripeTextureRaw(vec3 p, in int scene) {
-    float math = p.x * 5.;
+vec3 stripeTextureRaw(in vec3 p, in int scene) {
+    vec3 col = vec3(0.);
 
-    if (scene == 1) {
-        math = p.x * 1. - p.y * 25.;
+    switch(scene) {
+        case 0:
+            col = vec3(floor(mod(p.x * 5., 1.) * 2.));
+            break;
+
+        case 1:
+            col = vec3(floor(mod(p.x * 1. - p.y * 25., 1.) * 2.));
+            break;
     }
 
-
-    if (mod(math, 1.) > 0.5) {
-        return vec3(0.);
-    }
-
-    return vec3(1.);
+    return col;
 }
 
 const int textureSamples = 10;
@@ -330,7 +331,7 @@ vec3 stripeTexture(in vec3 p, in int scene) {
     return no / float(sx*sy);
 }
 
-void render(inout vec3 col, in float distance, in vec3 camera, in vec3 ray, int scene) {
+void render(inout vec3 col, in float distance, in vec3 camera, in vec3 ray, in int scene) {
     vec3 light = normalize(vec3(-0.25, 2., 1.25));
 
     if (distance > 0.0) {
@@ -348,6 +349,7 @@ void render(inout vec3 col, in float distance, in vec3 camera, in vec3 ray, int 
             stripe = 1. - stripe;
         }
         // stripe = vec3(1.);
+        // stripe = vec3(float(scene));
 
         col += material.ambient * stripe;
         col += material.diffuse * stripe * max(dot(normal, light), 0.0);
